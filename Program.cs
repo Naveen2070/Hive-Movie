@@ -1,4 +1,13 @@
+using Hive_Movie.Data;
+using Hive_Movie.Services.CurrentUser;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<ICurrentUserService, DummyUserService>();
 
 // Add services to the container.
 
