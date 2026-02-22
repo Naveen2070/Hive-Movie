@@ -1,4 +1,5 @@
 ﻿namespace Hive_Movie.Models;
+
 public abstract class BaseAuditableEntity
 {
     public Guid Id { get; set; } = Guid.CreateVersion7();

@@ -8,7 +8,7 @@
         public int MaxRows { get; set; }
         public int MaxColumns { get; set; }
 
-        public string LayoutConfigurationJson { get; set; } = "{}";
+        public AuditoriumLayout LayoutConfiguration { get; set; } = new();
 
         public Cinema? Cinema { get; set; }
     }

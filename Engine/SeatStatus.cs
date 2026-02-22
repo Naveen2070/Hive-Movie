@@ -5,6 +5,6 @@
         Available = 0,
         Reserved = 1,
         Sold = 2,
-        Broken = 3 
+        Broken = 3
     }
 }

@@ -1,7 +1,6 @@
 ﻿using Hive_Movie.Models;
 using Hive_Movie.Services.CurrentUser;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection.Emit;
 
 namespace Hive_Movie.Data
 {
@@ -78,6 +77,18 @@ namespace Hive_Movie.Data
             modelBuilder.Entity<Cinema>().HasQueryFilter(c => !c.IsDeleted);
             modelBuilder.Entity<Auditorium>().HasQueryFilter(a => !a.IsDeleted);
             modelBuilder.Entity<Showtime>().HasQueryFilter(s => !s.IsDeleted);
+
+            // --- ADD THIS JSON MAPPING ---
+            // Tell EF Core that LayoutConfiguration is owned by Auditorium and should be stored as JSON
+            modelBuilder.Entity<Auditorium>()
+               .OwnsOne(a => a.LayoutConfiguration, builder =>
+               {
+                   builder.ToJson(); // Store the parent object as JSON
+
+                   // Explicitly tell EF Core that these nested lists also live inside the JSON!
+                   builder.OwnsMany(l => l.DisabledSeats);
+                   builder.OwnsMany(l => l.WheelchairSpots);
+               });
         }
     }
 }
