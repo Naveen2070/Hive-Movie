@@ -1,5 +1,6 @@
 ﻿using Hive_Movie.DTOs;
 using Hive_Movie.Services.Movies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Hive_Movie.Controllers;
@@ -20,6 +21,7 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// </remarks>
     /// <returns>A list of movies.</returns>
     /// <response code="200">Successfully retrieved the movie catalog.</response>
+    [Authorize]
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<MovieResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()

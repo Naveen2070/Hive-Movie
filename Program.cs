@@ -31,6 +31,8 @@ builder.Services.AddExceptionHandler<Hive_Movie.Middleware.GlobalExceptionHandle
 /// Registers OpenAPI document generation.
 builder.Services.AddOpenApiDocumentation();
 
+// Configure JWT Authentication
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
@@ -73,7 +75,10 @@ app.UseExceptionHandler();
 /// Redirects HTTP traffic to HTTPS.
 app.UseHttpsRedirection();
 
-/// Enables authorization middleware (requires authentication setup if used).
+/// Enables authentication middleware
+app.UseAuthentication();
+
+/// Enables authorization middleware (requires authentication setup if used and placed after it).
 app.UseAuthorization();
 
 /// Maps controller routes.

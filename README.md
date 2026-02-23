@@ -1,53 +1,153 @@
-🐝 The Hive: Movie & Ticketing Microservice
+# Hive-Movie - Catalog & Ticketing Engine 🎬
 
-The core backend service responsible for managing the movie catalog, physical cinema infrastructure, and a highly concurrent seat reservation engine for **The Hive** ecosystem.
+> A high-performance core backend service responsible for managing the movie catalog, physical cinema infrastructure, and a highly concurrent seat reservation engine built with **.NET 10** and **C# 13**.
 
-## 🚀 Overview
+Hive-Movie acts as the transactional heart of the cinema ecosystem. It handles complex physical seating layouts, registers new movies and showtimes, and utilizes custom byte-level engine logic combined with Optimistic Concurrency Control to guarantee that race conditions and double-bookings are impossible during high-traffic ticket sales.
 
-This microservice is built using **.NET 10** and is designed to handle the heavy lifting of movie theater operations. It features a custom, high-performance byte-array engine for managing real-time seat availability, ensuring atomic transactions and preventing double-booking during high-traffic ticket sales.
+---
 
-It is part of a polyglot microservices architecture and is designed to accept JWT authorization from the Kotlin `Hive-Identity` service.
+### 🔗 Associated Repositories
+
+- 👉 **[Hive-Identity (Auth & Users)](https://www.google.com/search?q=https://github.com/Naveen2070/Hive-Identity)**
+- 👉 **[EventHive UI (Frontend)](https://github.com/Naveen2070/EventHive-UI)**
+- 👉 **[Hive-Event (Core API)](https://github.com/Naveen2070/EventHive)**
+
+---
+
+## 🚀 Key Features
+
+- **🎟️ High-Concurrency Ticketing:** Utilizes database-level Optimistic Concurrency Control (`RowVersion`) and a custom `SeatMapEngine` to ensure atomic reservations and prevent double-booking.
+- **💺 Complex Auditorium Layouts:** Seamlessly stores custom seating topologies (disabled seats, wheelchair spots, aisles) using EF Core JSON column mapping and dynamic cross-property validation.
+- **🛡️ Industrial-Grade Validation:** Combines native Data Annotations with **FluentValidation** to enforce strict physical boundaries (e.g., preventing a seat from being placed outside the room's maximum dimensions).
+- **🧯 Standardized Error Handling:** Fully compliant with **RFC 7807**. A centralized `IExceptionHandler` catches all domain and concurrency errors, returning predictable, beautifully formatted `ProblemDetails` JSON payloads without cluttered `try/catch` blocks.
+- **📚 Rich OpenAPI Documentation:** Utilizes .NET 10 Document Transformers to automatically generate an industrial-grade **Scalar UI** portal, fully annotated with expected responses and JWT Bearer integration.
+
+---
 
 ## 🛠️ Tech Stack
 
-* **Framework:** .NET 10 (ASP.NET Core Web API)
-* **Language:** C# 13
-* **Database:** SQL Server
-* **ORM:** Entity Framework Core (with JSON column mapping)
-* **Validation:** FluentValidation & Data Annotations
-* **API Documentation:** OpenAPI (v3) / Scalar UI
-* **Error Handling:** Centralized `IExceptionHandler` (RFC 7807 Problem Details)
+- **Language:** C# 13
+- **Framework:** .NET 10 (ASP.NET Core Web API)
+- **Database:** SQL Server
+- **ORM:** Entity Framework Core (with JSON column mapping)
+- **Validation:** FluentValidation & Data Annotations
+- **API Documentation:** OpenAPI (v3) / Scalar UI
+- **Error Handling:** `IExceptionHandler` Middleware
 
-## ✨ Key Features
+---
 
-* **Domain-Driven REST API:** Strict standard routing (`/api/{resource}/{id}/{action}`) across all controllers.
-* **Complex Auditorium Layouts:** Seamlessly stores and validates custom seating topologies (disabled seats, wheelchair spots) using EF Core JSON mapping and cross-property FluentValidation.
-* **High-Concurrency Ticketing:** Utilizes Optimistic Concurrency Control (RowVersion) and a custom `SeatMapEngine` to prevent race conditions during checkout.
-* **Standardized Error Responses:** Fully compliant with RFC 7807. The frontend receives predictable JSON payloads for 400s, 404s, and 409s without scattered `try/catch` blocks.
+## 🏗️ Architecture
 
-## 🚦 Getting Started
+The project follows a clean, decoupled **Domain-Service** architecture. Business logic is strictly isolated from HTTP routing, and complex validations are separated from the core entity models:
 
-### Prerequisites
-* .NET 10 SDK
-* SQL Server (LocalDB, Docker, or Cloud)
-
-### Setup Instructions
-1. Clone the repository.
-2. Update the `DefaultConnection` string in `appsettings.Development.json` to point to your SQL Server instance.
-3. Open a terminal in the project root and apply the Entity Framework migrations to build your database schema:
-```bash
-   dotnet ef database update
+```text
+Hive_Movie
+├── Configuration     # Application startup & OpenAPI Document Transformers
+├── Controllers       # RESTful API routing (/api/{resource}/{id})
+├── Data              # EF Core DbContext, Seeders, and Migrations
+├── DTOs              # Immutable Data Transfer Objects (Records)
+├── Engine            # High-performance business logic (e.g., SeatMapEngine)
+├── Middleware        # Pipeline interceptors (GlobalExceptionHandler)
+├── Models            # Rich Domain Entities (Movie, Cinema, Auditorium, etc.)
+├── Services          # Decoupled business logic and CRUD abstractions
+└── Validators        # FluentValidation rules for complex cross-property checks
 ```
 
-4. Run the application:
+---
+
+## 🔒 Security Architecture: JWT Integration
+
+Hive-Movie operates as a trusting resource server within the ecosystem. It does not issue tokens. Instead, it relies on the asymmetric/symmetric JWTs generated by the Kotlin **Hive-Identity** service.
+
+- **Read Operations (`GET`):** Currently public for catalog browsing.
+- **Mutating Operations (`POST`, `PUT`, `DELETE`):** Require a valid JWT Bearer token containing the appropriate Admin roles (Configuration coming in the next phase).
+
+---
+
+## ⚙️ Getting Started (How to Run)
+
+### Prerequisites
+
+- **.NET 10 SDK**
+- **SQL Server** (LocalDB, Docker, or Cloud instance)
+
+### 1. Clone the Repository
+
 ```bash
+git clone https://github.com/Naveen2070/Hive-Movie.git
+cd Hive-Movie
+```
+
+### 2. Database Configuration
+
+Update the `DefaultConnection` string inside your `appsettings.Development.json` to point to your running SQL Server instance.
+
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Server=localhost,1433;Database=HiveMovieDb;User Id=sa;Password=YourSecurePassword123!;TrustServerCertificate=True;"
+}
+```
+
+### 3. Run Migrations & Start Application
+
+Use the Entity Framework Core CLI to apply the database schema, then start the application. The `DbInitializer` will automatically seed the database with sample cinemas and movies on startup.
+
+```bash
+# Apply schema to SQL Server
+dotnet ef database update
+
+# Run the API
 dotnet run
 ```
 
-### API Documentation
+### 4. Access the Developer Portal
 
-When running in the Development environment, navigate to the base URL to access the interactive **Scalar UI** developer portal (e.g., `https://localhost:5001/scalar`). Here you can view the fully annotated OpenAPI documentation and test endpoints.
+Navigate to the base URL (e.g., `https://localhost:5001/scalar`) to access the interactive **Scalar UI**. Here you can explore the fully documented endpoints, view payload schemas, and test the API directly from your browser.
 
-## 🔒 Security (Upcoming)
+---
 
-This service expects a valid JWT Bearer token issued by the Kotlin Identity Service for any mutating operations (`POST`, `PUT`, `DELETE`).
+## 🔌 API Endpoints
+
+### 🎬 Movies Catalog
+
+| Method   | Endpoint           | Description                          | Access  |
+| -------- | ------------------ | ------------------------------------ | ------- |
+| `GET`    | `/api/movies`      | Get all active movies (Newest first) | Public  |
+| `GET`    | `/api/movies/{id}` | Get movie details by ID              | Public  |
+| `POST`   | `/api/movies`      | Register a new movie to the catalog  | Admin\* |
+| `PUT`    | `/api/movies/{id}` | Full update of a movie's details     | Admin\* |
+| `DELETE` | `/api/movies/{id}` | Soft-delete a movie from the catalog | Admin\* |
+
+### 🏢 Cinemas Management
+
+| Method   | Endpoint            | Description                       | Access  |
+| -------- | ------------------- | --------------------------------- | ------- |
+| `GET`    | `/api/cinemas`      | Get all physical cinema locations | Public  |
+| `GET`    | `/api/cinemas/{id}` | Get a specific cinema by ID       | Public  |
+| `POST`   | `/api/cinemas`      | Register a new cinema location    | Admin\* |
+| `PUT`    | `/api/cinemas/{id}` | Update cinema details             | Admin\* |
+| `DELETE` | `/api/cinemas/{id}` | Soft-delete a cinema location     | Admin\* |
+
+### 💺 Auditoriums & Layouts
+
+| Method   | Endpoint                       | Description                                    | Access  |
+| -------- | ------------------------------ | ---------------------------------------------- | ------- |
+| `GET`    | `/api/auditoriums`             | Get all auditoriums across all locations       | Public  |
+| `GET`    | `/api/auditoriums/cinema/{id}` | Get all screens for a specific physical cinema | Public  |
+| `GET`    | `/api/auditoriums/{id}`        | Get auditorium details and JSON seating layout | Public  |
+| `POST`   | `/api/auditoriums`             | Create a new room with layout validation       | Admin\* |
+| `PUT`    | `/api/auditoriums/{id}`        | Update room dimensions and seating layout      | Admin\* |
+| `DELETE` | `/api/auditoriums/{id}`        | Soft-delete an auditorium                      | Admin\* |
+
+### 🎟️ Showtimes & Ticketing
+
+| Method | Endpoint                      | Description                              | Access |
+| ------ | ----------------------------- | ---------------------------------------- | ------ |
+| `GET`  | `/api/showtimes/{id}/seatmap` | Get real-time seat availability grid     | Public |
+| `POST` | `/api/showtimes/{id}/reserve` | Reserve an array of specific coordinates | User\* |
+
+_(Note: Endpoint authorization levels marked with an asterisk `_` are scheduled for the upcoming JWT integration phase).\*
+
+---
+
+**Built with ❤️ by naveen**
