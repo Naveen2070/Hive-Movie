@@ -21,7 +21,6 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// </remarks>
     /// <returns>A list of movies.</returns>
     /// <response code="200">Successfully retrieved the movie catalog.</response>
-    [Authorize]
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<MovieResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
@@ -57,6 +56,7 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// <returns>The newly created movie.</returns>
     /// <response code="201">The movie was successfully created.</response>
     /// <response code="400">The request payload failed validation (e.g., missing title, invalid duration).</response>
+    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
     [HttpPost]
     [ProducesResponseType(typeof(MovieResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

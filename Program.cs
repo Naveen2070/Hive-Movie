@@ -1,9 +1,11 @@
 using Hive_Movie.Configuration;
 using Hive_Movie.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Logging;
 using Scalar.AspNetCore;
 
-var builder = WebApplication.CreateBuilder(args);
+IdentityModelEventSource.ShowPII = true;
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 /// ------------------------------------------------------------
 /// Service Registration
@@ -34,7 +36,7 @@ builder.Services.AddOpenApiDocumentation();
 // Configure JWT Authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 /// ------------------------------------------------------------
 /// Middleware And Pipeline Configuration
@@ -44,20 +46,20 @@ if (app.Environment.IsDevelopment())
 {
     /// Create scoped service provider for development-only tasks
     /// such as database initialization and seeding.
-    using (var scope = app.Services.CreateScope())
+    using (IServiceScope scope = app.Services.CreateScope())
     {
-        var services = scope.ServiceProvider;
+        IServiceProvider services = scope.ServiceProvider;
 
         try
         {
             /// Ensures database is created and seeded with initial data.
-            var context = services.GetRequiredService<ApplicationDbContext>();
+            ApplicationDbContext context = services.GetRequiredService<ApplicationDbContext>();
             DbInitializer.Initialize(context);
         }
         catch (Exception ex)
         {
             /// Log any failure during database initialization.
-            var logger = services.GetRequiredService<ILogger<Program>>();
+            ILogger logger = services.GetRequiredService<ILogger<Program>>();
             logger.LogError(ex, "An error occurred seeding the database.");
         }
     }
