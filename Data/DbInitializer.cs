@@ -31,7 +31,10 @@ public static class DbInitializer
         var cinema = new Cinema
         {
             Name = "Hive Multiplex Downtown",
-            Location = "123 Tech Boulevard"
+            Location = "123 Tech Boulevard",
+            ApprovalStatus= CinemaApprovalStatus.Approved,
+            ContactEmail="org@email.com",
+            OrganizerId="abc"
         };
         context.Cinemas.Add(cinema);
 

@@ -1,10 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Hive_Movie.DTOs;
+﻿using Hive_Movie.DTOs;
+using Hive_Movie.Models;
 using Hive_Movie.Services.Cinemas;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Hive_Movie.Controllers;
 
@@ -57,13 +59,25 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <returns>The newly created cinema.</returns>
     /// <response code="201">The cinema was successfully created.</response>
     /// <response code="400">The request payload failed validation (e.g., missing name or location).</response>
+    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
     [HttpPost]
     [ProducesResponseType(typeof(CinemaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateCinemaRequest request)
     {
-        var cinema = await _cinemaService.CreateCinemaAsync(request);
+        var organizerId = User.FindFirst("id")?.Value
+            ?? throw new UnauthorizedAccessException("Missing User Id.");
+
+        var cinema = await _cinemaService.CreateCinemaAsync(request,organizerId);
         return CreatedAtAction(nameof(GetById), new { id = cinema.Id }, cinema);
+    }
+
+    [Authorize(Roles = "ROLE_SUPER_ADMIN")]
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromQuery] CinemaApprovalStatus status)
+    {
+        await _cinemaService.UpdateCinemaStatusAsync(id, status);
+        return NoContent();
     }
 
     /// <summary>
@@ -78,6 +92,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="204">The cinema was successfully updated.</response>
     /// <response code="400">The request payload failed validation.</response>
     /// <response code="404">No cinema exists with the provided ID.</response>
+    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -98,6 +113,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <param name="id">The UUID v7 of the cinema to delete.</param>
     /// <response code="204">The cinema was successfully deleted.</response>
     /// <response code="404">No cinema exists with the provided ID.</response>
+    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
