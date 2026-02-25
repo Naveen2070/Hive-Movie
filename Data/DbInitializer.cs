@@ -27,24 +27,62 @@ public static class DbInitializer
         };
         context.Movies.Add(movie);
 
-        // 2. Create a Cinema
+        // 2. Create a Cinema (Owned by an Organizer)
         var cinema = new Cinema
         {
             Name = "Hive Multiplex Downtown",
             Location = "123 Tech Boulevard",
-            ApprovalStatus= CinemaApprovalStatus.Approved,
-            ContactEmail="org@email.com",
-            OrganizerId="abc"
+            ApprovalStatus = CinemaApprovalStatus.Approved,
+            ContactEmail = "org@email.com",
+            OrganizerId = "john.doe@example.com" // A realistic JWT 'sub' email
         };
         context.Cinemas.Add(cinema);
 
         // 3. Create an Auditorium (10 rows, 15 columns = 150 seats)
+        // Let's build a realistic JSON layout with Tiers and special seats!
+        var layout = new AuditoriumLayout
+        {
+            // Missing seats in the front corners (Row 0, Col 0 and Row 0, Col 14)
+            DisabledSeats = 
+            [
+                new SeatCoordinate { Row = 0, Col = 0 },
+                new SeatCoordinate { Row = 0, Col = 14 }
+            ],
+            
+            // Wheelchair accessible spots at the back corners
+            WheelchairSpots = 
+            [
+                new SeatCoordinate { Row = 9, Col = 0 },
+                new SeatCoordinate { Row = 9, Col = 14 }
+            ],
+            
+            // Define the Premium VIP Tier with a $5.00 surcharge
+            Tiers = 
+            [
+                new SeatTier
+                {
+                    TierName = "VIP Recliners",
+                    PriceSurcharge = 5.00m,
+                    // The premium center seats in Row 8
+                    Seats = 
+                    [
+                        new SeatCoordinate { Row = 8, Col = 5 },
+                        new SeatCoordinate { Row = 8, Col = 6 },
+                        new SeatCoordinate { Row = 8, Col = 7 },
+                        new SeatCoordinate { Row = 8, Col = 8 },
+                        new SeatCoordinate { Row = 8, Col = 9 }
+                    ]
+                }
+            ]
+        };
+
         var auditorium = new Auditorium
         {
-            CinemaId = cinema.Id, // Link to the Cinema we just created
+            CinemaId = cinema.Id, 
             Name = "IMAX Screen 1",
             MaxRows = 10,
             MaxColumns = 15,
+            LayoutConfiguration = layout, 
             Cinema = cinema
         };
         context.Auditoriums.Add(auditorium);
@@ -56,8 +94,9 @@ public static class DbInitializer
         {
             MovieId = movie.Id,
             AuditoriumId = auditorium.Id,
-            StartTimeUtc = DateTime.UtcNow.AddDays(2), // Playing in 2 days
-            BasePrice = 15.99m,
+            StartTimeUtc = DateTime.UtcNow.AddDays(2), 
+            BasePrice = 15.99m, 
+            
             // Initialize the 150 seats to 0 (Available)
             SeatAvailabilityState = new byte[totalSeats],
 
@@ -67,7 +106,6 @@ public static class DbInitializer
         context.Showtimes.Add(showtime);
 
         // 5. Save everything to SQL Server
-        // (Our EF Core ChangeTracker interceptor will automatically add the CreatedAt/CreatedBy fields!)
         context.SaveChanges();
     }
 }

@@ -10,8 +10,6 @@ namespace Hive_Movie.Controllers;
 [Tags("Movies Catalog")]
 public class MoviesController(IMovieService movieService) : ControllerBase
 {
-    private readonly IMovieService _movieService = movieService;
-
     /// <summary>
     /// Retrieves the complete catalog of movies.
     /// </summary>
@@ -25,7 +23,7 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<MovieResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
-        var movies = await _movieService.GetAllMoviesAsync();
+        var movies = await movieService.GetAllMoviesAsync();
         return Ok(movies);
     }
 
@@ -36,12 +34,12 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// <returns>The requested movie details.</returns>
     /// <response code="200">The movie was found and returned successfully.</response>
     /// <response code="404">No movie exists with the provided ID, or it has been deleted.</response>
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(MovieResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var movie = await _movieService.GetMovieByIdAsync(id);
+        var movie = await movieService.GetMovieByIdAsync(id);
         return Ok(movie);
     }
 
@@ -62,7 +60,7 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateMovieRequest request)
     {
-        var movie = await _movieService.CreateMovieAsync(request);
+        var movie = await movieService.CreateMovieAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = movie.Id }, movie);
     }
 
@@ -78,13 +76,13 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// <response code="204">The movie was successfully updated.</response>
     /// <response code="400">The request payload failed validation.</response>
     /// <response code="404">No movie exists with the provided ID.</response>
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMovieRequest request)
     {
-        await _movieService.UpdateMovieAsync(id, request);
+        await movieService.UpdateMovieAsync(id, request);
         return NoContent();
     }
 
@@ -98,12 +96,12 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// <param name="id">The UUID v7 of the movie to delete.</param>
     /// <response code="204">The movie was successfully deleted.</response>
     /// <response code="404">No movie exists with the provided ID.</response>
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _movieService.DeleteMovieAsync(id);
+        await movieService.DeleteMovieAsync(id);
         return NoContent();
     }
 }

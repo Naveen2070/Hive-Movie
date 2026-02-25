@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Hive_Movie.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/[controller]/{id:guid}")]
 [ApiController]
 [Tags("Ticketing & Showtimes")] 
 public class ShowtimesController(IShowtimeService showtimeService) : ControllerBase
@@ -22,7 +22,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// <returns>The complete seating layout and current availability status.</returns>
     /// <response code="200">Successfully retrieved the seat map.</response>
     /// <response code="404">The specified showtime does not exist.</response>
-    [HttpGet("{id}/seatmap")]
+    [HttpGet("seatmap")]
     [ProducesResponseType(typeof(ShowtimeSeatMapResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSeatMap(Guid id)
@@ -45,7 +45,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// <response code="400">One or more seats are out of bounds or already taken.</response>
     /// <response code="404">The specified showtime does not exist.</response>
     /// <response code="409">Concurrency conflict: Another user booked these seats at the exact same millisecond.</response>
-    [HttpPost("{id}/reserve")]
+    [HttpPost("reserve")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

@@ -2,21 +2,16 @@
 using Hive_Movie.Models;
 using Hive_Movie.Services.Cinemas;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+
 
 namespace Hive_Movie.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Tags("Cinemas Management")] // Groups these beautifully in your Scalar UI
-public class CinemasController(ICinemaService cinemaService) : ControllerBase
+[Tags("Cinemas Management")]
+public class CinemasController( ICinemaService cinemaService) : ControllerBase
 {
-    private readonly ICinemaService _cinemaService = cinemaService;
-
     /// <summary>
     /// Retrieves all physical cinema locations.
     /// </summary>
@@ -30,7 +25,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<CinemaResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
-        return Ok(await _cinemaService.GetAllCinemasAsync());
+        return Ok(await cinemaService.GetAllCinemasAsync());
     }
 
     /// <summary>
@@ -40,12 +35,12 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <returns>The requested cinema details.</returns>
     /// <response code="200">The cinema was found and returned successfully.</response>
     /// <response code="404">No cinema exists with the provided ID, or it has been deleted.</response>
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(CinemaResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
-        return Ok(await _cinemaService.GetCinemaByIdAsync(id));
+        return Ok(await cinemaService.GetCinemaByIdAsync(id));
     }
 
     /// <summary>
@@ -68,15 +63,15 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
         var organizerId = User.FindFirst("id")?.Value
             ?? throw new UnauthorizedAccessException("Missing User Id.");
 
-        var cinema = await _cinemaService.CreateCinemaAsync(request,organizerId);
+        var cinema = await cinemaService.CreateCinemaAsync(request,organizerId);
         return CreatedAtAction(nameof(GetById), new { id = cinema.Id }, cinema);
     }
 
     [Authorize(Roles = "ROLE_SUPER_ADMIN")]
-    [HttpPatch("{id}/status")]
+    [HttpPatch("{id:guid}/status")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromQuery] CinemaApprovalStatus status)
     {
-        await _cinemaService.UpdateCinemaStatusAsync(id, status);
+        await cinemaService.UpdateCinemaStatusAsync(id, status);
         return NoContent();
     }
 
@@ -93,13 +88,13 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="400">The request payload failed validation.</response>
     /// <response code="404">No cinema exists with the provided ID.</response>
     [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCinemaRequest request)
     {
-        await _cinemaService.UpdateCinemaAsync(id, request);
+        await cinemaService.UpdateCinemaAsync(id, request);
         return NoContent();
     }
 
@@ -114,12 +109,12 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="204">The cinema was successfully deleted.</response>
     /// <response code="404">No cinema exists with the provided ID.</response>
     [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _cinemaService.DeleteCinemaAsync(id);
+        await cinemaService.DeleteCinemaAsync(id);
         return NoContent();
     }
 }

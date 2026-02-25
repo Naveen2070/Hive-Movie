@@ -9,8 +9,6 @@ namespace Hive_Movie.Controllers;
 [Tags("Auditoriums Management")]
 public class AuditoriumsController(IAuditoriumService auditoriumService) : ControllerBase
 {
-    private readonly IAuditoriumService _auditoriumService = auditoriumService;
-
     /// <summary>
     /// Retrieves all auditoriums across all cinemas.
     /// </summary>
@@ -24,7 +22,7 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     [ProducesResponseType(typeof(IEnumerable<AuditoriumResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
-        return Ok(await _auditoriumService.GetAllAuditoriumsAsync());
+        return Ok(await auditoriumService.GetAllAuditoriumsAsync());
     }
 
     /// <summary>
@@ -36,11 +34,11 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// <param name="cinemaId">The UUID v7 of the parent cinema.</param>
     /// <returns>A list of auditoriums belonging to the specified cinema.</returns>
     /// <response code="200">Successfully retrieved the filtered auditoriums.</response>
-    [HttpGet("cinema/{cinemaId}")]
+    [HttpGet("cinema/{cinemaId:guid}")]
     [ProducesResponseType(typeof(IEnumerable<AuditoriumResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByCinemaId(Guid cinemaId)
     {
-        return Ok(await _auditoriumService.GetAuditoriumsByCinemaIdAsync(cinemaId));
+        return Ok(await auditoriumService.GetAuditoriumsByCinemaIdAsync(cinemaId));
     }
 
     /// <summary>
@@ -50,12 +48,12 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// <returns>The requested auditorium details and JSON layout.</returns>
     /// <response code="200">The auditorium was found and returned successfully.</response>
     /// <response code="404">No auditorium exists with the provided ID, or it has been deleted.</response>
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(AuditoriumResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
-        return Ok(await _auditoriumService.GetAuditoriumByIdAsync(id));
+        return Ok(await auditoriumService.GetAuditoriumByIdAsync(id));
     }
 
     /// <summary>
@@ -76,7 +74,7 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create([FromBody] CreateAuditoriumRequest request)
     {
-        var auditorium = await _auditoriumService.CreateAuditoriumAsync(request);
+        var auditorium = await auditoriumService.CreateAuditoriumAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = auditorium.Id }, auditorium);
     }
 
@@ -92,13 +90,13 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// <response code="204">The auditorium was successfully updated.</response>
     /// <response code="400">The request failed cross-property Fluent Validation constraints.</response>
     /// <response code="404">No auditorium exists with the provided ID.</response>
-    [HttpPut("{id}")]
+    [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAuditoriumRequest request)
     {
-        await _auditoriumService.UpdateAuditoriumAsync(id, request);
+        await auditoriumService.UpdateAuditoriumAsync(id, request);
         return NoContent();
     }
 
@@ -111,12 +109,12 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// <param name="id">The UUID v7 of the auditorium to delete.</param>
     /// <response code="204">The auditorium was successfully deleted.</response>
     /// <response code="404">No auditorium exists with the provided ID.</response>
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _auditoriumService.DeleteAuditoriumAsync(id);
+        await auditoriumService.DeleteAuditoriumAsync(id);
         return NoContent();
     }
 }

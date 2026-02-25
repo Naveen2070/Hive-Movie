@@ -11,19 +11,15 @@ public class AuditoriumService(
     IValidator<CreateAuditoriumRequest> createValidator,
     IValidator<UpdateAuditoriumRequest> updateValidator) : IAuditoriumService
 {
-    private readonly ApplicationDbContext _dbContext = dbContext;
-    private readonly IValidator<CreateAuditoriumRequest> _createValidator = createValidator;
-    private readonly IValidator<UpdateAuditoriumRequest> _updateValidator = updateValidator;
-
     public async Task<IEnumerable<AuditoriumResponse>> GetAllAuditoriumsAsync()
     {
-        var auditoriums = await _dbContext.Auditoriums.ToListAsync();
+        var auditoriums = await dbContext.Auditoriums.ToListAsync();
         return auditoriums.Select(MapToResponse);
     }
 
     public async Task<IEnumerable<AuditoriumResponse>> GetAuditoriumsByCinemaIdAsync(Guid cinemaId)
     {
-        var auditoriums = await _dbContext.Auditoriums
+        var auditoriums = await dbContext.Auditoriums
             .Where(a => a.CinemaId == cinemaId)
             .ToListAsync();
 
@@ -32,7 +28,7 @@ public class AuditoriumService(
 
     public async Task<AuditoriumResponse> GetAuditoriumByIdAsync(Guid id)
     {
-        var auditorium = await _dbContext.Auditoriums.FindAsync(id);
+        var auditorium = await dbContext.Auditoriums.FindAsync(id);
         return auditorium == null 
             ? throw new KeyNotFoundException($"Auditorium with ID {id} not found.") 
             : MapToResponse(auditorium);
@@ -40,9 +36,9 @@ public class AuditoriumService(
 
     public async Task<AuditoriumResponse> CreateAuditoriumAsync(CreateAuditoriumRequest request)
     {
-        await _createValidator.ValidateAndThrowAsync(request);
+        await createValidator.ValidateAndThrowAsync(request);
 
-        if (!await _dbContext.Cinemas.AnyAsync(c => c.Id == request.CinemaId))
+        if (!await dbContext.Cinemas.AnyAsync(c => c.Id == request.CinemaId))
             throw new KeyNotFoundException("The specified Cinema ID does not exist.");
 
         var auditorium = new Auditorium
@@ -58,17 +54,17 @@ public class AuditoriumService(
             }
         };
 
-        _dbContext.Auditoriums.Add(auditorium);
-        await _dbContext.SaveChangesAsync();
+        dbContext.Auditoriums.Add(auditorium);
+        await dbContext.SaveChangesAsync();
 
         return MapToResponse(auditorium);
     }
 
     public async Task UpdateAuditoriumAsync(Guid id, UpdateAuditoriumRequest request)
     {
-        await _updateValidator.ValidateAndThrowAsync(request);
+        await updateValidator.ValidateAndThrowAsync(request);
 
-        var auditorium = await _dbContext.Auditoriums.FindAsync(id)
+        var auditorium = await dbContext.Auditoriums.FindAsync(id)
             ?? throw new KeyNotFoundException($"Auditorium with ID {id} not found.");
 
         auditorium.Name = request.Name;
@@ -82,16 +78,16 @@ public class AuditoriumService(
             WheelchairSpots = request.Layout.WheelchairSpots.Select(s => new SeatCoordinate { Row = s.Row, Col = s.Col }).ToList()
         };
 
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
     }
 
     public async Task DeleteAuditoriumAsync(Guid id)
     {
-        var auditorium = await _dbContext.Auditoriums.FindAsync(id) 
+        var auditorium = await dbContext.Auditoriums.FindAsync(id) 
             ?? throw new KeyNotFoundException($"Auditorium with ID {id} not found.");
 
-        _dbContext.Auditoriums.Remove(auditorium);
-        await _dbContext.SaveChangesAsync();
+        dbContext.Auditoriums.Remove(auditorium);
+        await dbContext.SaveChangesAsync();
     }
 
     // A private helper to keep the mapping logic DRY

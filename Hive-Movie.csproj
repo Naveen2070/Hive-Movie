@@ -33,10 +33,7 @@
 
   <ItemGroup>
     <EditorConfigFiles Remove="D:\Study_Works\Code_works\The-Hive-Project\services\movie-service\.editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="D:\Study_Works\Code_works\The-Hive-Project\services\movie-service\.editorconfig" />
+    <EditorConfigFiles Remove=".editorconfig" />
   </ItemGroup>
 
 </Project>

@@ -7,11 +7,9 @@ namespace Hive_Movie.Services.ShowTimes;
 
 public class ShowtimeService(ApplicationDbContext dbContext) : IShowtimeService
 {
-    private readonly ApplicationDbContext _dbContext = dbContext;
-
     public async Task<ShowtimeSeatMapResponse> GetSeatMapAsync(Guid showtimeId)
     {
-        var showtime = await _dbContext.Showtimes
+        var showtime = await dbContext.Showtimes
             .Include(s => s.Movie)
             .Include(s => s.Auditorium)
             .ThenInclude(a => a!.Cinema)
@@ -27,9 +25,9 @@ public class ShowtimeService(ApplicationDbContext dbContext) : IShowtimeService
 
         var seatMap = new List<SeatStatusDto>();
 
-        for (int r = 0; r < showtime.Auditorium.MaxRows; r++)
+        for (var r = 0; r < showtime.Auditorium.MaxRows; r++)
         {
-            for (int c = 0; c < showtime.Auditorium.MaxColumns; c++)
+            for (var c = 0; c < showtime.Auditorium.MaxColumns; c++)
             {
                 seatMap.Add(new SeatStatusDto(r, c, engine.GetStatus(r, c).ToString()));
             }
@@ -47,10 +45,10 @@ public class ShowtimeService(ApplicationDbContext dbContext) : IShowtimeService
 
     public async Task ReserveSeatsAsync(Guid showtimeId, ReserveSeatsRequest request)
     {
-        if (request.Seats == null || !request.Seats.Any())
+        if (request.Seats == null || request.Seats.Count == 0)
             throw new ArgumentException("You must select at least one seat.");
 
-        var showtime = await _dbContext.Showtimes
+        var showtime = await dbContext.Showtimes
             .Include(s => s.Auditorium)
             .FirstOrDefaultAsync(s => s.Id == showtimeId);
 
@@ -68,8 +66,8 @@ public class ShowtimeService(ApplicationDbContext dbContext) : IShowtimeService
             throw new InvalidOperationException("One or more selected seats are no longer available.");
 
         // Force EF Core to detect the byte array mutation
-        _dbContext.Entry(showtime).Property(s => s.SeatAvailabilityState).IsModified = true;
+        dbContext.Entry(showtime).Property(s => s.SeatAvailabilityState).IsModified = true;
 
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
     }
 }
