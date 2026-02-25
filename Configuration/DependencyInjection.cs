@@ -5,12 +5,16 @@ using Hive_Movie.Services.CurrentUser;
 using Hive_Movie.Services.Movies;
 using Hive_Movie.Services.ShowTimes;
 using Hive_Movie.Services.Tickets;
+using Hive_Movie.Services.Workers;
 namespace Hive_Movie.Configuration;
 
 public static class DependencyInjection
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        // Enable High-performance cache
+        services.AddMemoryCache();
+
         // Core Services
         services.AddScoped<ICurrentUserService, DummyUserService>();
         services.AddScoped<IShowtimeService, ShowtimeService>();
@@ -18,7 +22,13 @@ public static class DependencyInjection
         services.AddScoped<ICinemaService, CinemaService>();
         services.AddScoped<IAuditoriumService, AuditoriumService>();
         services.AddScoped<ITicketService, TicketService>();
+
+        // FluentValidation
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+
+        // Workers
+        services.AddHostedService<TicketCleanupWorker>();
+
         return services;
     }
 }

@@ -3,9 +3,12 @@ using Hive_Movie.DTOs;
 using Hive_Movie.Engine;
 using Hive_Movie.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 namespace Hive_Movie.Services.Tickets;
 
-public class TicketService(ApplicationDbContext dbContext) : ITicketService
+public class TicketService(
+    ApplicationDbContext dbContext,
+    IMemoryCache cache) : ITicketService
 {
     public async Task<TicketCheckoutResponse> ReserveTicketsAsync(ReserveTicketRequest request, string currentUserId)
     {
@@ -101,6 +104,50 @@ public class TicketService(ApplicationDbContext dbContext) : ITicketService
             t.Status.ToString(),
             t.CreatedAtUtc
         ));
+    }
+
+    public async Task ConfirmTicketPaymentAsync(string bookingReference)
+    {
+        // 1. Fetch the ticket, the showtime, and the auditorium dimensions
+        var ticket = await dbContext.Tickets
+                .Include(t => t.Showtime)
+                .ThenInclude(s => s!.Auditorium)
+                .FirstOrDefaultAsync(t => t.BookingReference == bookingReference)
+            ?? throw new KeyNotFoundException($"No ticket found with reference {bookingReference}");
+
+        // 2. IDEMPOTENCY CHECK: If it's already confirmed, just silently return success
+        if (ticket.Status == TicketStatus.Confirmed)
+        {
+            return;
+        }
+
+        // If the background worker already expired it, it's too late!
+        if (ticket.Status != TicketStatus.Pending)
+        {
+            throw new InvalidOperationException($"Ticket is in {ticket.Status} state and cannot be confirmed.");
+        }
+
+        // 3. Update the high-performance Seat Engine (Reserved -> Sold)
+        var engine = new SeatMapEngine(
+            ticket.Showtime!.SeatAvailabilityState,
+            ticket.Showtime.Auditorium!.MaxRows,
+            ticket.Showtime.Auditorium.MaxColumns);
+
+        foreach (var seat in ticket.ReservedSeats)
+        {
+            engine.MarkAsSold(seat.Row, seat.Col);
+        }
+
+        // Force EF Core to detect the byte array mutation
+        dbContext.Entry(ticket.Showtime).Property(s => s.SeatAvailabilityState).IsModified = true;
+
+        // 4. Update the Ticket Ledger
+        ticket.Status = TicketStatus.Confirmed;
+        ticket.PaidAtUtc = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync();
+
+        cache.Remove($"SeatMap_{ticket.ShowtimeId}");
     }
 
     // Helper: Generates a unique, human-readable reference using a UUID

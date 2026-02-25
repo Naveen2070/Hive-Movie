@@ -3,12 +3,24 @@ using Hive_Movie.DTOs;
 using Hive_Movie.Engine;
 using Hive_Movie.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 namespace Hive_Movie.Services.ShowTimes;
 
-public class ShowtimeService(ApplicationDbContext dbContext) : IShowtimeService
+public class ShowtimeService(
+    ApplicationDbContext dbContext,
+    IMemoryCache cache) : IShowtimeService
 {
     public async Task<ShowtimeSeatMapResponse> GetSeatMapAsync(Guid showtimeId)
     {
+        var cacheKey = $"SeatMap_{showtimeId}";
+
+        // 1. Check RAM first! (O(1) nanosecond lookup)
+        if (cache.TryGetValue(cacheKey, out ShowtimeSeatMapResponse? cachedMap))
+        {
+            return cachedMap!;
+        }
+
+        // 2. Not in RAM? Fetch from SQL Server
         var showtime = await dbContext.Showtimes
             .Include(s => s.Movie)
             .Include(s => s.Auditorium)
@@ -33,7 +45,7 @@ public class ShowtimeService(ApplicationDbContext dbContext) : IShowtimeService
             }
         }
 
-        return new ShowtimeSeatMapResponse(
+        var response = new ShowtimeSeatMapResponse(
             showtime.Movie.Title,
             showtime.Auditorium.Cinema!.Name,
             showtime.Auditorium.Name,
@@ -41,6 +53,11 @@ public class ShowtimeService(ApplicationDbContext dbContext) : IShowtimeService
             showtime.Auditorium.MaxColumns,
             seatMap
         );
+
+        // 3. Save to RAM for 60 seconds
+        cache.Set(cacheKey, response, TimeSpan.FromSeconds(60));
+
+        return response;
     }
 
     public async Task ReserveSeatsAsync(Guid showtimeId, ReserveSeatsRequest request)
@@ -69,6 +86,9 @@ public class ShowtimeService(ApplicationDbContext dbContext) : IShowtimeService
         dbContext.Entry(showtime).Property(s => s.SeatAvailabilityState).IsModified = true;
 
         await dbContext.SaveChangesAsync();
+
+        // CACHE INVALIDATION: Immediately delete the cached map so the next user sees the new "Reserved" seats!
+        cache.Remove($"SeatMap_{showtimeId}");
     }
 
     public async Task<ShowtimeResponse> CreateShowtimeAsync(CreateShowtimeRequest request, string currentUser, bool isAdmin)

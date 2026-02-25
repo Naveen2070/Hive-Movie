@@ -5,4 +5,5 @@ public interface ITicketService
 {
     Task<TicketCheckoutResponse> ReserveTicketsAsync(ReserveTicketRequest request, string currentUserId);
     Task<IEnumerable<MyTicketResponse>> GetMyTicketsAsync(string currentUserId);
+    Task ConfirmTicketPaymentAsync(string bookingReference);
 }

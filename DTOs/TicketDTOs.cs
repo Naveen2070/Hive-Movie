@@ -56,3 +56,21 @@ public record MyTicketResponse(
     string Status,
     DateTime CreatedAtUtc
 );
+
+/// <summary>
+///     Represents the payload sent by the payment provider webhook.
+/// </summary>
+/// <param name="BookingReference">
+///     The booking reference associated with the payment.
+/// </param>
+/// <param name="TransactionId">
+///     The unique identifier of the payment transaction from the provider.
+/// </param>
+/// <param name="Status">
+///     The payment status reported by the provider (e.g., succeeded, failed).
+/// </param>
+public record PaymentWebhookPayload(
+    string BookingReference,
+    string TransactionId,
+    string Status
+);

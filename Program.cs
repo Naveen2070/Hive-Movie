@@ -1,10 +1,8 @@
 using Hive_Movie.Configuration;
 using Hive_Movie.Data;
+using Hive_Movie.Middleware;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Logging;
 using Scalar.AspNetCore;
-
-IdentityModelEventSource.ShowPII = true;
 var builder = WebApplication.CreateBuilder(args);
 
 // ------------------------------------------------------------
@@ -28,7 +26,7 @@ builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 
 // Registers our custom catcher's mitt
-builder.Services.AddExceptionHandler<Hive_Movie.Middleware.GlobalExceptionHandler>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Registers OpenAPI document generation.
 builder.Services.AddOpenApiDocumentation();
