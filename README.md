@@ -83,7 +83,7 @@ cd Hive-Movie
 Update the `DefaultConnection` string inside your `appsettings.Development.json` to point to your running SQL Server instance.
 
 ```json
-"ConnectionStrings": {
+"ConnectionStrings" : {
   "DefaultConnection": "Server=localhost,1433;Database=HiveMovieDb;User Id=sa;Password=YourSecurePassword123!;TrustServerCertificate=True;"
 }
 ```
@@ -111,7 +111,7 @@ Navigate to the base URL (e.g., `https://localhost:5001/scalar`) to access the i
 ### 🎬 Movies Catalog
 
 | Method   | Endpoint           | Description                          | Access  |
-| -------- | ------------------ | ------------------------------------ | ------- |
+|----------|--------------------|--------------------------------------|---------|
 | `GET`    | `/api/movies`      | Get all active movies (Newest first) | Public  |
 | `GET`    | `/api/movies/{id}` | Get movie details by ID              | Public  |
 | `POST`   | `/api/movies`      | Register a new movie to the catalog  | Admin\* |
@@ -121,7 +121,7 @@ Navigate to the base URL (e.g., `https://localhost:5001/scalar`) to access the i
 ### 🏢 Cinemas Management
 
 | Method   | Endpoint            | Description                       | Access  |
-| -------- | ------------------- | --------------------------------- | ------- |
+|----------|---------------------|-----------------------------------|---------|
 | `GET`    | `/api/cinemas`      | Get all physical cinema locations | Public  |
 | `GET`    | `/api/cinemas/{id}` | Get a specific cinema by ID       | Public  |
 | `POST`   | `/api/cinemas`      | Register a new cinema location    | Admin\* |
@@ -131,7 +131,7 @@ Navigate to the base URL (e.g., `https://localhost:5001/scalar`) to access the i
 ### 💺 Auditoriums & Layouts
 
 | Method   | Endpoint                       | Description                                    | Access  |
-| -------- | ------------------------------ | ---------------------------------------------- | ------- |
+|----------|--------------------------------|------------------------------------------------|---------|
 | `GET`    | `/api/auditoriums`             | Get all auditoriums across all locations       | Public  |
 | `GET`    | `/api/auditoriums/cinema/{id}` | Get all screens for a specific physical cinema | Public  |
 | `GET`    | `/api/auditoriums/{id}`        | Get auditorium details and JSON seating layout | Public  |
@@ -142,7 +142,7 @@ Navigate to the base URL (e.g., `https://localhost:5001/scalar`) to access the i
 ### 🎟️ Showtimes & Ticketing
 
 | Method | Endpoint                      | Description                              | Access |
-| ------ | ----------------------------- | ---------------------------------------- | ------ |
+|--------|-------------------------------|------------------------------------------|--------|
 | `GET`  | `/api/showtimes/{id}/seatmap` | Get real-time seat availability grid     | Public |
 | `POST` | `/api/showtimes/{id}/reserve` | Reserve an array of specific coordinates | User\* |
 
