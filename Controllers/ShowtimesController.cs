@@ -101,7 +101,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] CreateShowtimeRequest request)
     {
-        var currentUser = User.Identity?.Name ?? throw new UnauthorizedAccessException();
+        var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
         var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
 
         var showtime = await showtimeService.CreateShowtimeAsync(request, currentUser, isAdmin);
@@ -136,7 +136,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateShowtimeRequest request)
     {
-        var currentUser = User.Identity?.Name ?? throw new UnauthorizedAccessException();
+        var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
         var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
 
         await showtimeService.UpdateShowtimeAsync(id, request, currentUser, isAdmin);
@@ -168,7 +168,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var currentUser = User.Identity?.Name ?? throw new UnauthorizedAccessException();
+        var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
         var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
 
         await showtimeService.DeleteShowtimeAsync(id, currentUser, isAdmin);

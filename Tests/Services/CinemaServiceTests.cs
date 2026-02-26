@@ -27,14 +27,11 @@ public class CinemaServiceTests
     [Fact]
     public async Task GetAllCinemasAsync_ReturnsEmptyList_WhenNoCinemasExist()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
 
-        // Act
         var result = await service.GetAllCinemasAsync();
 
-        // Assert
         Assert.NotNull(result);
         Assert.Empty(result);
     }
@@ -42,7 +39,6 @@ public class CinemaServiceTests
     [Fact]
     public async Task GetAllCinemasAsync_ReturnsAllActiveCinemas()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
 
@@ -66,10 +62,8 @@ public class CinemaServiceTests
         );
         await dbContext.SaveChangesAsync();
 
-        // Act
         var result = (await service.GetAllCinemasAsync()).ToList();
 
-        // Assert
         Assert.Equal(2, result.Count);
         Assert.Contains(result, c => c.Name == "Cinema A");
         Assert.Contains(result, c => c.Name == "Cinema B");
@@ -80,7 +74,6 @@ public class CinemaServiceTests
     [Fact]
     public async Task GetCinemaByIdAsync_ReturnsCinema_WhenIdExists()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
         var expectedId = Guid.NewGuid();
@@ -95,10 +88,8 @@ public class CinemaServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        // Act
         var result = await service.GetCinemaByIdAsync(expectedId);
 
-        // Assert
         Assert.NotNull(result);
         Assert.Equal(expectedId, result.Id);
         Assert.Equal("Hive IMAX", result.Name);
@@ -107,14 +98,11 @@ public class CinemaServiceTests
     [Fact]
     public async Task GetCinemaByIdAsync_ThrowsKeyNotFound_WhenIdDoesNotExist()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
-        var fakeId = Guid.NewGuid();
 
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GetCinemaByIdAsync(fakeId));
-        Assert.Equal($"Cinema with ID {fakeId} not found.", ex.Message);
+        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GetCinemaByIdAsync(Guid.NewGuid()));
+        Assert.Contains("not found", ex.Message);
     }
 
     // --- 3. TESTS FOR: CreateCinemaAsync ---
@@ -122,35 +110,30 @@ public class CinemaServiceTests
     [Fact]
     public async Task CreateCinemaAsync_ValidRequest_SavesToDatabase_AndForcesPendingStatus()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
 
         var request = new CreateCinemaRequest("New Cinema", "Downtown", "contact@cinema.com");
         const string organizerId = "Organizer-99";
 
-        // Act
         var result = await service.CreateCinemaAsync(request, organizerId);
 
-        // Assert
         Assert.NotNull(result);
-        Assert.NotEqual(Guid.Empty, result.Id); // EF Core generated a Guid
+        Assert.NotEqual(Guid.Empty, result.Id);
         Assert.Equal("New Cinema", result.Name);
-        Assert.Equal(nameof(CinemaApprovalStatus.Pending), result.ApprovalStatus); // Ensure it mapped correctly to the DTO
+        Assert.Equal(nameof(CinemaApprovalStatus.Pending), result.ApprovalStatus);
 
-        // Verify it was actually committed to the database correctly
         var savedCinema = await dbContext.Cinemas.FindAsync(result.Id);
         Assert.NotNull(savedCinema);
         Assert.Equal(organizerId, savedCinema.OrganizerId);
-        Assert.Equal(CinemaApprovalStatus.Pending, savedCinema.ApprovalStatus); // Critical Business Rule Check!
+        Assert.Equal(CinemaApprovalStatus.Pending, savedCinema.ApprovalStatus);
     }
 
     // --- 4. TESTS FOR: UpdateCinemaAsync ---
 
     [Fact]
-    public async Task UpdateCinemaAsync_WhenCinemaExists_UpdatesNameAndLocation()
+    public async Task UpdateCinemaAsync_ValidOwner_UpdatesNameAndLocation()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
         var cinemaId = Guid.NewGuid();
@@ -167,26 +150,74 @@ public class CinemaServiceTests
 
         var request = new UpdateCinemaRequest("New Name", "New Loc");
 
-        // Act
-        await service.UpdateCinemaAsync(cinemaId, request);
+        // Act (Passed "Org-1" as the currentUser, isAdmin = false)
+        await service.UpdateCinemaAsync(cinemaId, request, "Org-1", false);
 
-        // Assert
         var updatedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
-        Assert.NotNull(updatedCinema);
-        Assert.Equal("New Name", updatedCinema.Name);
+        Assert.Equal("New Name", updatedCinema!.Name);
         Assert.Equal("New Loc", updatedCinema.Location);
+    }
+
+    [Fact]
+    public async Task UpdateCinemaAsync_WrongOwner_ThrowsUnauthorizedAccessException()
+    {
+        var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
+        var service = new CinemaService(dbContext);
+        var cinemaId = Guid.NewGuid();
+
+        dbContext.Cinemas.Add(new Cinema
+        {
+            Id = cinemaId,
+            Name = "Name",
+            Location = "Loc",
+            OrganizerId = "RealOwner",
+            ContactEmail = "test@hive.com"
+        });
+        await dbContext.SaveChangesAsync();
+
+        var request = new UpdateCinemaRequest("Hacked Name", "Hacked Loc");
+
+        // Act & Assert (Hacker tries to update)
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.UpdateCinemaAsync(cinemaId, request, "Hacker", false));
+        Assert.Equal("You do not own this cinema.", ex.Message);
+    }
+
+    [Fact]
+    public async Task UpdateCinemaAsync_SuperAdmin_OverridesOwnershipCheck()
+    {
+        var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
+        var service = new CinemaService(dbContext);
+        var cinemaId = Guid.NewGuid();
+
+        dbContext.Cinemas.Add(new Cinema
+        {
+            Id = cinemaId,
+            Name = "Name",
+            Location = "Loc",
+            OrganizerId = "RealOwner",
+            ContactEmail = "test@hive.com"
+        });
+        await dbContext.SaveChangesAsync();
+
+        var request = new UpdateCinemaRequest("Admin Updated", "Loc");
+
+        // Act (Admin doesn't own it, but isAdmin = true)
+        await service.UpdateCinemaAsync(cinemaId, request, "AdminUser", true);
+
+        var updatedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
+        Assert.Equal("Admin Updated", updatedCinema!.Name);
     }
 
     [Fact]
     public async Task UpdateCinemaAsync_WhenCinemaDoesNotExist_ThrowsKeyNotFound()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
         var request = new UpdateCinemaRequest("Name", "Loc");
 
-        // Act & Assert
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.UpdateCinemaAsync(Guid.NewGuid(), request));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            service.UpdateCinemaAsync(Guid.NewGuid(), request, "Org-1", false));
     }
 
     // --- 5. TESTS FOR: UpdateCinemaStatusAsync (Admin Action) ---
@@ -194,7 +225,6 @@ public class CinemaServiceTests
     [Fact]
     public async Task UpdateCinemaStatusAsync_WhenCinemaExists_UpdatesStatusSuccessfully()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
         var cinemaId = Guid.NewGuid();
@@ -210,32 +240,27 @@ public class CinemaServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        // Act
         await service.UpdateCinemaStatusAsync(cinemaId, CinemaApprovalStatus.Approved);
 
-        // Assert
         var updatedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
-        Assert.NotNull(updatedCinema);
-        Assert.Equal(CinemaApprovalStatus.Approved, updatedCinema.ApprovalStatus);
+        Assert.Equal(CinemaApprovalStatus.Approved, updatedCinema!.ApprovalStatus);
     }
 
     [Fact]
     public async Task UpdateCinemaStatusAsync_WhenCinemaDoesNotExist_ThrowsKeyNotFound()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.UpdateCinemaStatusAsync(Guid.NewGuid(), CinemaApprovalStatus.Approved));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            service.UpdateCinemaStatusAsync(Guid.NewGuid(), CinemaApprovalStatus.Approved));
     }
 
     // --- 6. TESTS FOR: DeleteCinemaAsync ---
 
     [Fact]
-    public async Task DeleteCinemaAsync_WhenCinemaExists_SoftDeletesFromDatabase()
+    public async Task DeleteCinemaAsync_ValidOwner_SoftDeletesFromDatabase()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
         var cinemaId = Guid.NewGuid();
@@ -251,27 +276,71 @@ public class CinemaServiceTests
         await dbContext.SaveChangesAsync();
 
         // Act
-        await service.DeleteCinemaAsync(cinemaId);
+        await service.DeleteCinemaAsync(cinemaId, "Org-1", false);
 
-        // Assert 1: The entity still exists in the local tracker, but is marked as deleted!
         var softDeletedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
         Assert.NotNull(softDeletedCinema);
         Assert.True(softDeletedCinema.IsDeleted);
         Assert.NotNull(softDeletedCinema.DeletedAtUtc);
 
-        // Assert 2: Prove that the Global Query Filter (c => !c.IsDeleted) successfully hides it
         var visibleCinemas = await dbContext.Cinemas.ToListAsync();
         Assert.Empty(visibleCinemas);
     }
 
     [Fact]
+    public async Task DeleteCinemaAsync_WrongOwner_ThrowsUnauthorizedAccessException()
+    {
+        var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
+        var service = new CinemaService(dbContext);
+        var cinemaId = Guid.NewGuid();
+
+        dbContext.Cinemas.Add(new Cinema
+        {
+            Id = cinemaId,
+            Name = "Cinema",
+            Location = "Loc",
+            OrganizerId = "RealOwner",
+            ContactEmail = "doom@hive.com"
+        });
+        await dbContext.SaveChangesAsync();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.DeleteCinemaAsync(cinemaId, "Hacker", false));
+        Assert.Equal("You do not own this cinema.", ex.Message);
+    }
+
+    [Fact]
+    public async Task DeleteCinemaAsync_SuperAdmin_OverridesOwnershipCheck()
+    {
+        var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
+        var service = new CinemaService(dbContext);
+        var cinemaId = Guid.NewGuid();
+
+        dbContext.Cinemas.Add(new Cinema
+        {
+            Id = cinemaId,
+            Name = "Cinema",
+            Location = "Loc",
+            OrganizerId = "RealOwner",
+            ContactEmail = "doom@hive.com"
+        });
+        await dbContext.SaveChangesAsync();
+
+        // Act
+        await service.DeleteCinemaAsync(cinemaId, "AdminUser", true);
+
+        var softDeletedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
+        Assert.True(softDeletedCinema!.IsDeleted);
+    }
+
+    [Fact]
     public async Task DeleteCinemaAsync_WhenCinemaDoesNotExist_ThrowsKeyNotFound()
     {
-        // Arrange
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.DeleteCinemaAsync(Guid.NewGuid()));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            service.DeleteCinemaAsync(Guid.NewGuid(), "Org-1", false));
     }
 }

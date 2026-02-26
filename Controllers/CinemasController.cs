@@ -115,7 +115,10 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCinemaRequest request)
     {
-        await cinemaService.UpdateCinemaAsync(id, request);
+        var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
+        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+
+        await cinemaService.UpdateCinemaAsync(id, request, currentUser, isAdmin);
         return NoContent();
     }
 
@@ -136,7 +139,10 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await cinemaService.DeleteCinemaAsync(id);
+        var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
+        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+
+        await cinemaService.DeleteCinemaAsync(id, currentUser, isAdmin);
         return NoContent();
     }
 }
