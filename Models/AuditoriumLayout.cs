@@ -10,7 +10,7 @@ public class AuditoriumLayout
 
     // Coordinates for wheelchair-accessible spots
     public IReadOnlyCollection<SeatCoordinate> WheelchairSpots { get; init; } = new List<SeatCoordinate>();
-    
+
     // The pricing tiers for this specific room
     public IReadOnlyCollection<SeatTier> Tiers { get; init; } = new List<SeatTier>();
 }
@@ -25,9 +25,10 @@ public class SeatCoordinate
 public class SeatTier
 {
     [MaxLength(100)]
-    public required string TierName { get; init; } 
-    
+    public required string TierName { get; init; }
+
     [Precision(18, 2)]
-    public decimal PriceSurcharge { get; init; } 
-    public IReadOnlyCollection<SeatCoordinate> Seats { get; init; } = [];
+    public decimal PriceSurcharge { get; init; }
+
+    public IReadOnlyCollection<SeatCoordinate> Seats { get; init; } = new List<SeatCoordinate>();
 }

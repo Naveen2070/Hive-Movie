@@ -1,6 +1,5 @@
 ﻿using Hive_Movie.Models;
 using System.ComponentModel.DataAnnotations;
-
 namespace Hive_Movie.DTOs;
 
 /// <summary>
@@ -12,7 +11,7 @@ namespace Hive_Movie.DTOs;
 public record CreateCinemaRequest(
     [Required][MaxLength(200)] string Name,
     [Required][MaxLength(500)] string Location,
-    [Required][EmailAddress]string ContactEmail);
+    [Required][EmailAddress] string ContactEmail);
 
 /// <summary>
 /// The payload required to update an existing cinema location. All fields must be provided.
@@ -32,14 +31,16 @@ public record UpdateCinemaRequest(
 public record CinemaResponse(
     Guid Id,
     string Name,
-    string Location)
+    string Location,
+    string ApprovalStatus)
 {
     public static CinemaResponse MapToResponse(Cinema cinema)
-{
-    return new CinemaResponse(
-        cinema.Id,
-        cinema.Name,
-        cinema.Location
-    );
-}
+    {
+        return new CinemaResponse(
+            cinema.Id,
+            cinema.Name,
+            cinema.Location,
+            cinema.ApprovalStatus.ToString()
+        );
+    }
 }
