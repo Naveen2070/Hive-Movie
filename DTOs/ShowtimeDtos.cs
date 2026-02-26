@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-
 namespace Hive_Movie.DTOs;
 
 /// <summary>
@@ -49,4 +48,44 @@ public record SeatStatusDto(
     int Row,
     int Col,
     string Status
+);
+
+/// <summary>
+/// The payload required to create a new showtime for a specific movie in a specific auditorium.
+/// </summary>
+/// <param name="MovieId">The unique identifier of the movie being screened.</param>
+/// <param name="AuditoriumId">The unique identifier of the auditorium where the movie will be shown.</param>
+/// <param name="StartTimeUtc">The scheduled start time of the showtime in UTC.</param>
+/// <param name="BasePrice">The base ticket price before applying any seat tier surcharges.</param>
+public record CreateShowtimeRequest(
+    Guid MovieId,
+    Guid AuditoriumId,
+    DateTime StartTimeUtc,
+    [Range(0, 1000)] decimal BasePrice
+);
+
+/// <summary>
+/// The payload required to update an existing showtime.
+/// </summary>
+/// <param name="StartTimeUtc">The updated scheduled start time in UTC.</param>
+/// <param name="BasePrice">The updated base ticket price before applying seat tier surcharges.</param>
+public record UpdateShowtimeRequest(
+    DateTime StartTimeUtc,
+    [Range(0, 1000)] decimal BasePrice
+);
+
+/// <summary>
+/// Represents the details of a showtime returned to the client.
+/// </summary>
+/// <param name="Id">The unique identifier of the showtime.</param>
+/// <param name="MovieId">The unique identifier of the associated movie.</param>
+/// <param name="AuditoriumId">The unique identifier of the auditorium where the showtime takes place.</param>
+/// <param name="StartTimeUtc">The scheduled start time of the showtime in UTC.</param>
+/// <param name="BasePrice">The base ticket price before seat tier adjustments.</param>
+public record ShowtimeResponse(
+    Guid Id,
+    Guid MovieId,
+    Guid AuditoriumId,
+    DateTime StartTimeUtc,
+    decimal BasePrice
 );

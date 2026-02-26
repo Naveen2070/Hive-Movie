@@ -7,11 +7,9 @@ namespace Hive_Movie.Services.Movies;
 
 public class MovieService(ApplicationDbContext dbContext) : IMovieService
 {
-    private readonly ApplicationDbContext _dbContext = dbContext;
-
     public async Task<IEnumerable<MovieResponse>> GetAllMoviesAsync()
     {
-        var movies = await _dbContext.Movies
+        var movies = await dbContext.Movies
             .OrderByDescending(m => m.ReleaseDate)
             .ToListAsync();
 
@@ -21,7 +19,7 @@ public class MovieService(ApplicationDbContext dbContext) : IMovieService
 
     public async Task<MovieResponse> GetMovieByIdAsync(Guid id)
     {
-        var movie = await _dbContext.Movies.FindAsync(id);
+        var movie = await dbContext.Movies.FindAsync(id);
         return movie == null
             ? throw new KeyNotFoundException($"Movie with ID {id} not found.")
             : new MovieResponse(
@@ -39,8 +37,8 @@ public class MovieService(ApplicationDbContext dbContext) : IMovieService
             PosterUrl = request.PosterUrl
         };
 
-        _dbContext.Movies.Add(movie);
-        await _dbContext.SaveChangesAsync();
+        dbContext.Movies.Add(movie);
+        await dbContext.SaveChangesAsync();
 
         return new MovieResponse(
             movie.Id, movie.Title, movie.Description, movie.DurationMinutes, movie.ReleaseDate, movie.PosterUrl);
@@ -48,7 +46,7 @@ public class MovieService(ApplicationDbContext dbContext) : IMovieService
 
     public async Task UpdateMovieAsync(Guid id, UpdateMovieRequest request)
     {
-        var movie = await _dbContext.Movies.FindAsync(id)
+        var movie = await dbContext.Movies.FindAsync(id)
             ?? throw new KeyNotFoundException($"Movie with ID {id} not found.");
 
         movie.Title = request.Title;
@@ -57,15 +55,15 @@ public class MovieService(ApplicationDbContext dbContext) : IMovieService
         movie.ReleaseDate = request.ReleaseDate;
         movie.PosterUrl = request.PosterUrl;
 
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
     }
 
     public async Task DeleteMovieAsync(Guid id)
     {
-        var movie = await _dbContext.Movies.FindAsync(id)
+        var movie = await dbContext.Movies.FindAsync(id)
             ?? throw new KeyNotFoundException($"Movie with ID {id} not found.");
 
-        _dbContext.Movies.Remove(movie);
-        await _dbContext.SaveChangesAsync();
+        dbContext.Movies.Remove(movie);
+        await dbContext.SaveChangesAsync();
     }
 }

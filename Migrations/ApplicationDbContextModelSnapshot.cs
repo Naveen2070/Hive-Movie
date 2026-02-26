@@ -57,7 +57,8 @@ namespace Hive_Movie.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
@@ -77,6 +78,14 @@ namespace Hive_Movie.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContactEmail")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
@@ -98,11 +107,18 @@ namespace Hive_Movie.Migrations
 
                     b.Property<string>("Location")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("OrganizerId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
@@ -135,7 +151,8 @@ namespace Hive_Movie.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("DurationMinutes")
                         .HasColumnType("int");
@@ -147,14 +164,16 @@ namespace Hive_Movie.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("PosterUrl")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<DateTime>("ReleaseDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
@@ -228,6 +247,66 @@ namespace Hive_Movie.Migrations
                     b.ToTable("Showtimes");
                 });
 
+            modelBuilder.Entity("Hive_Movie.Models.Ticket", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BookingReference")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("DeletedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("PaidAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ShowtimeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("UpdatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShowtimeId");
+
+                    b.ToTable("Tickets");
+                });
+
             modelBuilder.Entity("Hive_Movie.Models.Auditorium", b =>
                 {
                     b.HasOne("Hive_Movie.Models.Cinema", "Cinema")
@@ -289,7 +368,54 @@ namespace Hive_Movie.Migrations
                                         .HasForeignKey("AuditoriumLayoutAuditoriumId");
                                 });
 
+                            b1.OwnsMany("Hive_Movie.Models.SeatTier", "Tiers", b2 =>
+                                {
+                                    b2.Property<Guid>("AuditoriumLayoutAuditoriumId");
+
+                                    b2.Property<int>("__synthesizedOrdinal")
+                                        .ValueGeneratedOnAddOrUpdate();
+
+                                    b2.Property<decimal>("PriceSurcharge")
+                                        .HasPrecision(18, 2);
+
+                                    b2.Property<string>("TierName")
+                                        .IsRequired()
+                                        .HasMaxLength(100);
+
+                                    b2.HasKey("AuditoriumLayoutAuditoriumId", "__synthesizedOrdinal");
+
+                                    b2.ToTable("Auditoriums");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("AuditoriumLayoutAuditoriumId");
+
+                                    b2.OwnsMany("Hive_Movie.Models.SeatCoordinate", "Seats", b3 =>
+                                        {
+                                            b3.Property<Guid>("SeatTierAuditoriumLayoutAuditoriumId");
+
+                                            b3.Property<int>("SeatTier__synthesizedOrdinal");
+
+                                            b3.Property<int>("__synthesizedOrdinal")
+                                                .ValueGeneratedOnAddOrUpdate();
+
+                                            b3.Property<int>("Col");
+
+                                            b3.Property<int>("Row");
+
+                                            b3.HasKey("SeatTierAuditoriumLayoutAuditoriumId", "SeatTier__synthesizedOrdinal", "__synthesizedOrdinal");
+
+                                            b3.ToTable("Auditoriums");
+
+                                            b3.WithOwner()
+                                                .HasForeignKey("SeatTierAuditoriumLayoutAuditoriumId", "SeatTier__synthesizedOrdinal");
+                                        });
+
+                                    b2.Navigation("Seats");
+                                });
+
                             b1.Navigation("DisabledSeats");
+
+                            b1.Navigation("Tiers");
 
                             b1.Navigation("WheelchairSpots");
                         });
@@ -317,6 +443,42 @@ namespace Hive_Movie.Migrations
                     b.Navigation("Auditorium");
 
                     b.Navigation("Movie");
+                });
+
+            modelBuilder.Entity("Hive_Movie.Models.Ticket", b =>
+                {
+                    b.HasOne("Hive_Movie.Models.Showtime", "Showtime")
+                        .WithMany()
+                        .HasForeignKey("ShowtimeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("Hive_Movie.Models.SeatCoordinate", "ReservedSeats", b1 =>
+                        {
+                            b1.Property<Guid>("TicketId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAddOrUpdate();
+
+                            b1.Property<int>("Col");
+
+                            b1.Property<int>("Row");
+
+                            b1.HasKey("TicketId", "__synthesizedOrdinal");
+
+                            b1.ToTable("Tickets");
+
+                            b1
+                                .ToJson("ReservedSeats")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("TicketId");
+                        });
+
+                    b.Navigation("ReservedSeats");
+
+                    b.Navigation("Showtime");
                 });
 
             modelBuilder.Entity("Hive_Movie.Models.Cinema", b =>

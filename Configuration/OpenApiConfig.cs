@@ -8,7 +8,7 @@ public static class OpenApiConfig
         _ = services.AddOpenApi(static options =>
         {
             // 1. Customize the Title, Version, and Description
-            options.AddDocumentTransformer((document, context, cancellationToken) =>
+            options.AddDocumentTransformer((document,_,_) =>
             {
                 document.Info = new OpenApiInfo
                 {
@@ -25,7 +25,7 @@ public static class OpenApiConfig
             });
 
             // 2. Configure the JWT Bearer Authentication UI (Updated for .NET 10 API)
-            _ = options.AddDocumentTransformer(static (document, context, cancellationToken) =>
+            _ = options.AddDocumentTransformer(static (document,_,_) =>
             {
                 document.Components ??= new OpenApiComponents();
 

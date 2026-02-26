@@ -2,7 +2,7 @@
 
 public abstract class BaseAuditableEntity
 {
-    public Guid Id { get; set; } = Guid.CreateVersion7();
+    public Guid Id { get; init; } = Guid.CreateVersion7();
 
     // Creation Audit
     public DateTime CreatedAtUtc { get; set; }

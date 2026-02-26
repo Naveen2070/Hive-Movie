@@ -2,57 +2,76 @@
 using Hive_Movie.DTOs;
 using Hive_Movie.Models;
 using Microsoft.EntityFrameworkCore;
-
 namespace Hive_Movie.Services.Cinemas;
 
 public class CinemaService(ApplicationDbContext dbContext) : ICinemaService
 {
-    private readonly ApplicationDbContext _dbContext = dbContext;
-
     public async Task<IEnumerable<CinemaResponse>> GetAllCinemasAsync()
     {
-        var cinemas = await _dbContext.Cinemas.ToListAsync();
-        return cinemas.Select(c => new CinemaResponse(c.Id, c.Name, c.Location));
+        var cinemas = await dbContext.Cinemas.ToListAsync();
+        return cinemas.Select(CinemaResponse.MapToResponse);
     }
 
     public async Task<CinemaResponse> GetCinemaByIdAsync(Guid id)
     {
-        var cinema = await _dbContext.Cinemas.FindAsync(id);
+        var cinema = await dbContext.Cinemas.FindAsync(id);
         return cinema == null
             ? throw new KeyNotFoundException($"Cinema with ID {id} not found.")
-            : new CinemaResponse(cinema.Id, cinema.Name, cinema.Location);
+            : CinemaResponse.MapToResponse(cinema);
     }
 
-    public async Task<CinemaResponse> CreateCinemaAsync(CreateCinemaRequest request)
+    public async Task<CinemaResponse> CreateCinemaAsync(CreateCinemaRequest request, string organizerId)
     {
         var cinema = new Cinema
         {
             Name = request.Name,
-            Location = request.Location
+            Location = request.Location,
+            OrganizerId = organizerId,
+            ContactEmail = request.ContactEmail,
+            ApprovalStatus = CinemaApprovalStatus.Pending
         };
 
-        _dbContext.Cinemas.Add(cinema);
-        await _dbContext.SaveChangesAsync();
+        dbContext.Cinemas.Add(cinema);
+        await dbContext.SaveChangesAsync();
 
-        return new CinemaResponse(cinema.Id, cinema.Name, cinema.Location);
+        return CinemaResponse.MapToResponse(cinema);
     }
 
-    public async Task UpdateCinemaAsync(Guid id, UpdateCinemaRequest request)
+    public async Task UpdateCinemaAsync(Guid id, UpdateCinemaRequest request, string currentUser, bool isAdmin)
     {
-        var cinema = await _dbContext.Cinemas.FindAsync(id) 
+        var cinema = await dbContext.Cinemas.FindAsync(id)
             ?? throw new KeyNotFoundException($"Cinema with ID {id} not found.");
+
+        if (!isAdmin && cinema.OrganizerId != currentUser)
+        {
+            throw new UnauthorizedAccessException("You are not authorized to update this cinema.");
+        }
 
         cinema.Name = request.Name;
         cinema.Location = request.Location;
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
     }
 
-    public async Task DeleteCinemaAsync(Guid id)
+    public async Task DeleteCinemaAsync(Guid id, string currentUser, bool isAdmin)
     {
-        var cinema = await _dbContext.Cinemas.FindAsync(id) 
+        var cinema = await dbContext.Cinemas.FindAsync(id)
             ?? throw new KeyNotFoundException($"Cinema with ID {id} not found.");
 
-        _dbContext.Cinemas.Remove(cinema);
-        await _dbContext.SaveChangesAsync();
+        if (!isAdmin && cinema.OrganizerId != currentUser)
+        {
+            throw new UnauthorizedAccessException("You are not authorized to delete this cinema.");
+        }
+
+        dbContext.Cinemas.Remove(cinema);
+        await dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateCinemaStatusAsync(Guid id, CinemaApprovalStatus status)
+    {
+        var cinema = await dbContext.Cinemas.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Cinema with ID {id} not found.");
+
+        cinema.ApprovalStatus = status;
+        await dbContext.SaveChangesAsync();
     }
 }

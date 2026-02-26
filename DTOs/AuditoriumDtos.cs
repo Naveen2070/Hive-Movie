@@ -33,9 +33,23 @@ public record UpdateAuditoriumRequest(
 /// </summary>
 /// <param name="DisabledSeats">A list of grid coordinates where no physical seat exists (e.g., aisles or pillars).</param>
 /// <param name="WheelchairSpots">A list of grid coordinates designated specifically for wheelchair access.</param>
+/// <param name="Tiers">A list of tier for a specific group of seats.</param>
 public record AuditoriumLayoutDto(
     List<SeatCoordinateDto> DisabledSeats,
-    List<SeatCoordinateDto> WheelchairSpots);
+    List<SeatCoordinateDto> WheelchairSpots,
+    List<SeatTierDto> Tiers);
+
+/// <summary>
+/// Represents a pricing tier for a specific group of seats.
+/// </summary>
+/// <param name="TierName">e.g., "VIP Recliners"</param>
+/// <param name="PriceSurcharge">The extra cost added to the Showtime base price.</param>
+/// <param name="Seats">The specific coordinates belonging to this tier.</param>
+public record SeatTierDto(
+    string TierName,
+    decimal PriceSurcharge,
+    List<SeatCoordinateDto> Seats
+);
 
 /// <summary>
 /// Represents an auditorium record returned from the system.
