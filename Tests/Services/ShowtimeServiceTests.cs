@@ -119,43 +119,8 @@ public class ShowtimeServiceTests
         Assert.Equal("Cached Movie", result.MovieTitle);
     }
 
-    // --- 2. TESTS FOR: ReserveSeatsAsync (With Cache Invalidation) ---
 
-    [Fact]
-    public async Task ReserveSeatsAsync_ShouldLockSeats_AndInvalidateCache()
-    {
-        // Arrange
-        var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
-        var service = new ShowtimeService(dbContext, cache);
-        var data = await SeedDataAsync(dbContext, "Org-1");
-
-        // Pre-warm the cache so we can prove it gets deleted
-        cache.Set($"SeatMap_{data.Showtime.Id}", new ShowtimeSeatMapResponse("M", "C", "A", 10, 10, []));
-
-        var request = new ReserveSeatsRequest([new SeatCoordinateDto(0, 0)]);
-
-        // Act
-        await service.ReserveSeatsAsync(data.Showtime.Id, request);
-
-        // Assert
-        var updatedShowtime = await dbContext.Showtimes.AsNoTracking().FirstAsync();
-        Assert.Equal(1, updatedShowtime.SeatAvailabilityState[0]); // Seat 0,0 is now Reserved (1)
-
-        // Ensure the cache was destroyed!
-        Assert.False(cache.TryGetValue($"SeatMap_{data.Showtime.Id}", out _));
-    }
-
-    [Fact]
-    public async Task ReserveSeatsAsync_NoSeatsRequested_ThrowsArgumentException()
-    {
-        var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
-        var service = new ShowtimeService(dbContext, cache);
-
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.ReserveSeatsAsync(Guid.NewGuid(), new ReserveSeatsRequest([])));
-    }
-
-    // --- 3. TESTS FOR: Security & Ownership (Create, Update, Delete) ---
+    // --- 2. TESTS FOR: Security & Ownership (Create, Update, Delete) ---
 
     [Fact]
     public async Task CreateShowtimeAsync_ValidOwnerAndApprovedCinema_CreatesSuccessfully()

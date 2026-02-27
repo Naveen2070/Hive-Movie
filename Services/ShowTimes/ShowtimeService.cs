@@ -60,37 +60,6 @@ public class ShowtimeService(
         return response;
     }
 
-    public async Task ReserveSeatsAsync(Guid showtimeId, ReserveSeatsRequest request)
-    {
-        if (request.Seats == null || request.Seats.Count == 0)
-            throw new ArgumentException("You must select at least one seat.");
-
-        var showtime = await dbContext.Showtimes
-            .Include(s => s.Auditorium)
-            .FirstOrDefaultAsync(s => s.Id == showtimeId);
-
-        if (showtime?.Auditorium == null)
-            throw new KeyNotFoundException("Showtime not found.");
-
-        var engine = new SeatMapEngine(
-            showtime.SeatAvailabilityState,
-            showtime.Auditorium.MaxRows,
-            showtime.Auditorium.MaxColumns);
-
-        var seatsToBook = request.Seats.Select(s => (s.Row, s.Col)).ToList();
-
-        if (!engine.TryReserveSeats(seatsToBook))
-            throw new InvalidOperationException("One or more selected seats are no longer available.");
-
-        // Force EF Core to detect the byte array mutation
-        dbContext.Entry(showtime).Property(s => s.SeatAvailabilityState).IsModified = true;
-
-        await dbContext.SaveChangesAsync();
-
-        // CACHE INVALIDATION: Immediately delete the cached map so the next user sees the new "Reserved" seats!
-        cache.Remove($"SeatMap_{showtimeId}");
-    }
-
     public async Task<ShowtimeResponse> CreateShowtimeAsync(CreateShowtimeRequest request, string currentUser, bool isAdmin)
     {
         // 1. Fetch Auditorium & Verify Ownership and Approval Status

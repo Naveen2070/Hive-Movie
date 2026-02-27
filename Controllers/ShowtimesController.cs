@@ -40,38 +40,6 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
         return Ok(await showtimeService.GetSeatMapAsync(id));
     }
 
-    /// <summary>
-    /// Attempts to reserve a group of seats for a specific showtime.
-    /// </summary>
-    /// <remarks>
-    /// Requires authentication.  
-    /// This operation is atomic and concurrency-safe.  
-    /// Either all requested seats are successfully reserved, or the operation fails entirely.
-    /// </remarks>
-    /// <param name="id">The unique identifier (UUID v7) of the showtime.</param>
-    /// <param name="request">The list of seat coordinates to reserve.</param>
-    /// <response code="200">All requested seats were successfully reserved.</response>
-    /// <response code="400">One or more seats are invalid, out of bounds, or already taken.</response>
-    /// <response code="401">The user is not authenticated.</response>
-    /// <response code="404">The specified showtime does not exist.</response>
-    /// <response code="409">A concurrency conflict occurred while reserving seats.</response>
-    [Authorize]
-    [HttpPost("{id:guid}/reserve")]
-    [Tags("Ticketing & Checkout")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> ReserveSeats(Guid id, [FromBody] ReserveSeatsRequest request)
-    {
-        await showtimeService.ReserveSeatsAsync(id, request);
-        return Ok(new
-        {
-            Message = "Seats successfully reserved!"
-        });
-    }
-
     // -------------------------------
     // ORGANIZER SHOWTIME MANAGEMENT
     // -------------------------------

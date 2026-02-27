@@ -1,10 +1,12 @@
 ﻿using Hive_Movie.Data;
 using Hive_Movie.DTOs;
+using Hive_Movie.Infrastructure.Clients;
 using Hive_Movie.Models;
 using Hive_Movie.Services.CurrentUser;
 using Hive_Movie.Services.Tickets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Moq;
 namespace Tests.Services;
 
@@ -88,6 +90,18 @@ public class TicketServiceTests
         return showtime;
     }
 
+    private static TicketService CreateTicketService(ApplicationDbContext dbContext, IMemoryCache cache)
+    {
+        var mockIdentityClient = new Mock<IIdentityClient>();
+        mockIdentityClient
+            .Setup(c => c.GetUserByIdAsync(It.IsAny<long>()))
+            .ReturnsAsync(new UserSummaryDto(12345, "test@hive.com", "Test", "User"));
+
+        var mockLogger = new Mock<ILogger<TicketService>>();
+
+        return new TicketService(dbContext, cache, mockIdentityClient.Object, mockLogger.Object);
+    }
+
     // --- 1. TESTS FOR: ReserveTicketsAsync ---
 
     [Fact]
@@ -95,7 +109,7 @@ public class TicketServiceTests
     {
         // Arrange
         var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
-        var service = new TicketService(dbContext, cache);
+        var service = CreateTicketService(dbContext, cache);
         var showtime = await SeedStandardShowtimeAsync(dbContext);
 
         var request = new ReserveTicketRequest(showtime.Id, [
@@ -127,7 +141,7 @@ public class TicketServiceTests
     {
         // Arrange
         var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
-        var service = new TicketService(dbContext, cache);
+        var service = CreateTicketService(dbContext, cache);
         var request = new ReserveTicketRequest(Guid.NewGuid(), [new SeatCoordinateDto(0, 0)]);
 
         // Act & Assert
@@ -139,7 +153,7 @@ public class TicketServiceTests
     {
         // Arrange
         var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
-        var service = new TicketService(dbContext, cache);
+        var service = CreateTicketService(dbContext, cache);
         var showtime = await SeedStandardShowtimeAsync(dbContext);
 
         // Manually steal Row 0, Col 0 by setting it to Reserved (1)
@@ -160,7 +174,7 @@ public class TicketServiceTests
     {
         // Arrange
         var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
-        var service = new TicketService(dbContext, cache);
+        var service = CreateTicketService(dbContext, cache);
         var showtime = await SeedStandardShowtimeAsync(dbContext);
 
         var olderTicket = new Ticket
@@ -208,7 +222,7 @@ public class TicketServiceTests
     {
         // Arrange
         var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
-        var service = new TicketService(dbContext, cache);
+        var service = CreateTicketService(dbContext, cache);
         var showtime = await SeedStandardShowtimeAsync(dbContext);
 
         // Seat engine state is set to Reserved (1)
@@ -257,7 +271,7 @@ public class TicketServiceTests
     {
         // Arrange
         var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
-        var service = new TicketService(dbContext, cache);
+        var service = CreateTicketService(dbContext, cache);
         var showtime = await SeedStandardShowtimeAsync(dbContext);
 
         var ticket = new Ticket
@@ -284,7 +298,7 @@ public class TicketServiceTests
     {
         // Arrange
         var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
-        var service = new TicketService(dbContext, cache);
+        var service = CreateTicketService(dbContext, cache);
         var showtime = await SeedStandardShowtimeAsync(dbContext);
 
         var ticket = new Ticket

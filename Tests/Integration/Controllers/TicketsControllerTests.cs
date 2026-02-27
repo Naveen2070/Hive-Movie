@@ -1,6 +1,7 @@
 ﻿using Hive_Movie.Controllers;
 using Hive_Movie.Data;
 using Hive_Movie.DTOs;
+using Hive_Movie.Infrastructure.Clients;
 using Hive_Movie.Models;
 using Hive_Movie.Services.CurrentUser;
 using Hive_Movie.Services.Tickets;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
 namespace Tests.Integration.Controllers;
@@ -39,8 +41,16 @@ public class TicketsControllerTests(SqlServerFixture fixture) : IAsyncLifetime
 
     private TicketsController CreateController(ApplicationDbContext dbContext, string? userId)
     {
+        var mockIdentityClient = new Mock<IIdentityClient>();
+        mockIdentityClient
+            .Setup(c => c.GetUserByIdAsync(It.IsAny<long>()))
+            .ReturnsAsync(new UserSummaryDto(12345, "test@hive.com", "Test", "User"));
+
+        var mockLogger = new Mock<ILogger<TicketService>>();
+
+        // Inject them here!
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var service = new TicketService(dbContext, cache);
+        var service = new TicketService(dbContext, cache, mockIdentityClient.Object, mockLogger.Object);
         var controller = new TicketsController(service);
 
         var claims = new List<Claim>

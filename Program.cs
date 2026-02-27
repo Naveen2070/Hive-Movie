@@ -17,7 +17,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Registers all custom application services (business logic layer).
 // Keeps Program.cs clean and modular.
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 
 // Adds MVC controllers support (API endpoints).
 builder.Services.AddControllers();

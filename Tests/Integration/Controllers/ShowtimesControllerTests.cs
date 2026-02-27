@@ -132,70 +132,6 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.Equal("Test Movie", response.MovieTitle);
     }
 
-    [Fact]
-    public async Task ReserveSeats_AvailableSeat_ReturnsOk_AndMutatesState()
-    {
-        // Arrange
-        await using var dbContext = CreateDbContext();
-        var data = await SeedHierarchyAsync(dbContext, "Org-1");
-
-        var showtime = new Showtime
-        {
-            Id = Guid.NewGuid(),
-            MovieId = data.movie.Id,
-            AuditoriumId = data.auditorium.Id,
-            StartTimeUtc = DateTime.UtcNow,
-            BasePrice = 10,
-            SeatAvailabilityState = new byte[100]
-        };
-        dbContext.Showtimes.Add(showtime);
-        await dbContext.SaveChangesAsync();
-
-        var controller = CreateController(dbContext, "User-1", "ROLE_USER");
-        var request = new ReserveSeatsRequest([new SeatCoordinateDto(5, 5)]);
-
-        // Act
-        var result = await controller.ReserveSeats(showtime.Id, request);
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(okResult.Value);
-
-        // Prove Database State Mutated (5 * 10 + 5 = index 55)
-        var updatedShowtime = await dbContext.Showtimes.FindAsync(showtime.Id);
-        Assert.Equal(1, updatedShowtime!.SeatAvailabilityState[55]); // 1 = Reserved
-    }
-
-    [Fact]
-    public async Task ReserveSeats_TakenSeat_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        await using var dbContext = CreateDbContext();
-        var data = await SeedHierarchyAsync(dbContext, "Org-1");
-
-        var state = new byte[100];
-        state[0] = 1; // Mark Seat (0,0) as Reserved!
-
-        var showtime = new Showtime
-        {
-            Id = Guid.NewGuid(),
-            MovieId = data.movie.Id,
-            AuditoriumId = data.auditorium.Id,
-            StartTimeUtc = DateTime.UtcNow,
-            BasePrice = 10,
-            SeatAvailabilityState = state
-        };
-        dbContext.Showtimes.Add(showtime);
-        await dbContext.SaveChangesAsync();
-
-        var controller = CreateController(dbContext, "User-1", "ROLE_USER");
-        var request = new ReserveSeatsRequest([new SeatCoordinateDto(0, 0)]);
-
-        // Act & Assert (User tries to book an already reserved seat)
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.ReserveSeats(showtime.Id, request));
-        Assert.Contains("no longer available", ex.Message);
-    }
-
     // --- 2. SHOWTIME MANAGEMENT (ORGANIZER/ADMIN ENDPOINTS) ---
 
     [Fact]
@@ -351,48 +287,6 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.Contains("not found", ex.Message);
     }
 
-    [Fact]
-    public async Task ReserveSeats_EmptySeatList_ThrowsArgumentException()
-    {
-        // Arrange
-        await using var dbContext = CreateDbContext();
-        var data = await SeedHierarchyAsync(dbContext, "Org-1");
-
-        var showtime = new Showtime
-        {
-            Id = Guid.NewGuid(),
-            MovieId = data.movie.Id,
-            AuditoriumId = data.auditorium.Id,
-            StartTimeUtc = DateTime.UtcNow,
-            BasePrice = 10,
-            SeatAvailabilityState = new byte[100]
-        };
-        dbContext.Showtimes.Add(showtime);
-        await dbContext.SaveChangesAsync();
-
-        var controller = CreateController(dbContext, "User-1", "ROLE_USER");
-
-        // Requesting to reserve ZERO seats
-        var request = new ReserveSeatsRequest(new List<SeatCoordinateDto>());
-
-        // Act & Assert
-        // The service layer should catch this and throw an ArgumentException (which becomes a 400 Bad Request)
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.ReserveSeats(showtime.Id, request));
-        Assert.Equal("You must select at least one seat.", ex.Message);
-    }
-
-    [Fact]
-    public async Task ReserveSeats_NonExistentShowtime_ThrowsKeyNotFoundException()
-    {
-        // Arrange
-        await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "User-1", "ROLE_USER");
-        var request = new ReserveSeatsRequest([new SeatCoordinateDto(0, 0)]);
-
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.ReserveSeats(Guid.NewGuid(), request));
-        Assert.Contains("not found", ex.Message);
-    }
 
     [Fact]
     public async Task Create_NonExistentMovie_ThrowsKeyNotFoundException()
