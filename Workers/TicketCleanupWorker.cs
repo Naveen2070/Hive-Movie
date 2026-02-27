@@ -3,7 +3,7 @@ using Hive_Movie.Engine;
 using Hive_Movie.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-namespace Hive_Movie.Services.Workers;
+namespace Hive_Movie.Workers;
 
 public class TicketCleanupWorker(
     IServiceProvider serviceProvider,
