@@ -10,10 +10,13 @@ namespace Hive_Movie.Controllers;
 /// <remarks>
 /// This controller exposes both public ticketing endpoints and restricted organizer
 /// management endpoints secured via role-based access control (RBAC).
+/// 
+/// Organizers may only manage showtimes for cinemas they created and own.
+/// Super administrators have global access and may manage all showtimes.
 /// </remarks>
 [Route("api/[controller]")]
 [ApiController]
-[Tags("Showtime Managment")]
+[Tags("Showtimes Management")]
 public class ShowtimesController(IShowtimeService showtimeService) : ControllerBase
 {
     /// <summary>
@@ -78,11 +81,8 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// 
-    /// <list type="bullet">
-    /// <item><description>ROLE_ORGANIZER</description></item>
-    /// <item><description>ROLE_SUPER_ADMIN</description></item>
-    /// </list>
+    /// - `ROLE_ORGANIZER`
+    /// - `ROLE_SUPER_ADMIN`
     /// 
     /// Organizers may only create showtimes for cinemas they own.  
     /// Super administrators may create showtimes for any cinema.
@@ -94,7 +94,6 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// <response code="403">The user does not have sufficient permissions.</response>
     [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
     [HttpPost]
-    [Tags("Showtimes Management")]
     [ProducesResponseType(typeof(ShowtimeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -113,10 +112,9 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// <list type="bullet">
-    /// <item>ROLE_ORGANIZER</item>
-    /// <item>ROLE_SUPER_ADMIN</item>
-    /// </list>
+    /// - `ROLE_ORGANIZER`
+    /// - `ROLE_SUPER_ADMIN`
+    /// 
     /// Organizers may only update showtimes belonging to their own cinemas.
     /// </remarks>
     /// <param name="id">The unique identifier of the showtime.</param>
@@ -128,7 +126,6 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// <response code="404">The showtime does not exist.</response>
     [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
     [HttpPut("{id:guid}")]
-    [Tags("Showtimes Management")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -148,10 +145,9 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// <list type="bullet">
-    /// <item>ROLE_ORGANIZER</item>
-    /// <item>ROLE_SUPER_ADMIN</item>
-    /// </list>
+    /// - `ROLE_ORGANIZER`
+    /// - `ROLE_SUPER_ADMIN`
+    /// 
     /// Organizers may only delete showtimes belonging to their own cinemas.
     /// </remarks>
     /// <param name="id">The unique identifier of the showtime.</param>
@@ -161,7 +157,6 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// <response code="404">The showtime does not exist.</response>
     [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
     [HttpDelete("{id:guid}")]
-    [Tags("Showtimes Management")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

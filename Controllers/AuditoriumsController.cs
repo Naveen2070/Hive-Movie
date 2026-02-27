@@ -81,10 +81,8 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// <list type="bullet">
-    /// <item>ROLE_ORGANIZER</item>
-    /// <item>ROLE_SUPER_ADMIN</item>
-    /// </list>
+    /// - `ROLE_ORGANIZER`
+    /// - `ROLE_SUPER_ADMIN`
     /// 
     /// Organizers may only create auditoriums for cinemas they own.
     /// The seating layout is fully validated to ensure coordinates remain within
@@ -122,10 +120,8 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// <list type="bullet">
-    /// <item>ROLE_ORGANIZER</item>
-    /// <item>ROLE_SUPER_ADMIN</item>
-    /// </list>
+    /// - `ROLE_ORGANIZER`
+    /// - `ROLE_SUPER_ADMIN`
     /// 
     /// Performs a full replacement (PUT) of the auditorium entity, including the nested
     /// layout configuration. All seat coordinates are re-validated against the updated dimensions.
@@ -158,10 +154,8 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// <list type="bullet">
-    /// <item>ROLE_ORGANIZER</item>
-    /// <item>ROLE_SUPER_ADMIN</item>
-    /// </list>
+    /// - `ROLE_ORGANIZER`
+    /// - `ROLE_SUPER_ADMIN`
     /// 
     /// The record remains stored for auditing and historical integrity but is excluded
     /// from standard query results.
