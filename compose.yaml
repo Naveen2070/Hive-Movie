@@ -1,0 +1,47 @@
+﻿services:
+  movie-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: standalone-movie-service
+    ports:
+      - "8082:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=movie-db-standalone;Database=HiveMovieDb;User Id=sa;Password=SuperSecretPass123!;TrustServerCertificate=True;
+      - Jwt__Secret=QA7zupEZVIya2JsJCJU/jEtbj6MPGleOZHIxKZU7iL4=
+      - InternalProperties__SharedSecret=7x!A%C*F-JaNdRgUkXp2s5v8y/B?E(G+KbPeShVmYq3t6w9z$C&F)J@McQfTjWnZ
+      - RabbitMQ__Host=rabbitmq-standalone
+      - IdentityService__Url=http://localhost:8081
+    depends_on:
+      - movie-db-standalone
+      - rabbitmq-standalone
+    networks:
+      - standalone-network
+
+  movie-db-standalone:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    container_name: standalone-movie-db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=SuperSecretPass123!
+    ports:
+      - "1433:1433"
+    networks:
+      - standalone-network
+
+  rabbitmq-standalone:
+    image: rabbitmq:4.2.3-management-alpine
+    container_name: standalone-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=publisher
+      - RABBITMQ_DEFAULT_PASS=pub@2020
+    ports:
+      - "5672:5672"
+      - "15672:15672" # RabbitMQ Management UI
+    networks:
+      - standalone-network
+
+networks:
+  standalone-network:
+    driver: bridge

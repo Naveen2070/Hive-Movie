@@ -42,6 +42,7 @@
   <ItemGroup>
     <Compile Remove="Tests\**"/>
     <Content Remove="Tests\**"/>
+    <Content Include=".github\workflows\dotnet-ci.yml"/>
     <EmbeddedResource Remove="Tests\**"/>
     <None Remove="Tests\**"/>
   </ItemGroup>

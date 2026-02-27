@@ -1,0 +1,56 @@
+﻿name: Hive Movie CI (.NET 8)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out your code
+      # Using standard v4 (v6 from your Kotlin example doesn't officially exist yet for checkout!)
+      - uses: actions/checkout@v6
+        with:
+          submodules: true # Just in case you need it to pull nested submodules
+
+      # 2. Set up the .NET 8 SDK
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      # 3. Restore NuGet dependencies
+      # This downloads all the packages (Entity Framework, RabbitMQ, Refit, etc.)
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # 4. Build the application
+      # Compiles the code to ensure there are no syntax or type errors
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      # 5. Run Tests (Unit + Integration)
+      # Executes your xUnit tests (TicketServiceTests, SeatConcurrencyTests, etc.)
+      - name: Test
+        run: dotnet test --no-build -c Release --verbosity normal
+
+      # 6. Publish the DLLs
+      # Prepares the highly optimized, ready-to-run production files
+      - name: Publish
+        run: dotnet publish -c Release -o ./publish /p:UseAppHost=false
+
+      # 7. Upload the Build Artifact (Optional)
+      # Lets you download the compiled .NET binaries directly from the GitHub Actions UI
+#      - name: Upload .NET Artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: hive-movie-app
+#          path: ./publish
+#          retention-days: 1
