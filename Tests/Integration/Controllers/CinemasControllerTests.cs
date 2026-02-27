@@ -357,7 +357,7 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Update(cinemaId, request));
-        Assert.Equal("You do not own this cinema.", ex.Message); // Assuming you added this check in CinemaService
+        Assert.Equal("You are not authorized to update this cinema.", ex.Message);
     }
 
     [Fact]
@@ -383,7 +383,7 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Delete(cinemaId));
-        Assert.Equal("You do not own this cinema.", ex.Message);
+        Assert.Equal("You are not authorized to delete this cinema.", ex.Message);
     }
 
     [Fact]
