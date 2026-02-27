@@ -272,27 +272,28 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var movieId = Guid.NewGuid();
 
-        // We manually insert a movie that is ALREADY marked as deleted
-        dbContext.Movies.Add(new Movie
+        var movie = new Movie
         {
-            Id = movieId,
-            Title = "Ghost Movie",
-            Description = "Spooky",
-            DurationMinutes = 120,
-            IsDeleted = true, // <-- Already dead!
-            DeletedAtUtc = DateTime.UtcNow
-        });
+            Id = Guid.NewGuid(), Title = "Ghost Movie", Description = "Spooky", DurationMinutes = 120
+        };
+
+        // 1. Add normally so interceptor doesn't fight us
+        dbContext.Movies.Add(movie);
         await dbContext.SaveChangesAsync();
+
+        // 2. Explicitly remove to trigger soft-delete interceptor logic
+        dbContext.Movies.Remove(movie);
+        await dbContext.SaveChangesAsync();
+
+        // 3. Clear cache to force SQL query
+        dbContext.ChangeTracker.Clear();
 
         var controller = CreateController(dbContext, "ROLE_ORGANIZER");
         var request = new UpdateMovieRequest("Trying to revive", "Desc", 120, DateTime.UtcNow, null);
 
         // Act & Assert
-        // Prove that the EF Core Global Query Filter successfully hides this record, 
-        // causing the service to throw a 404 instead of allowing the update!
-        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.Update(movieId, request));
+        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.Update(movie.Id, request));
         Assert.Contains("not found", ex.Message);
     }
 
@@ -301,24 +302,27 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var movieId = Guid.NewGuid();
 
-        dbContext.Movies.Add(new Movie
+        var movie = new Movie
         {
-            Id = movieId,
-            Title = "Ghost Movie",
-            Description = "Spooky",
-            DurationMinutes = 120,
-            IsDeleted = true, // <-- Already dead!
-            DeletedAtUtc = DateTime.UtcNow
-        });
+            Id = Guid.NewGuid(), Title = "Ghost Movie", Description = "Spooky", DurationMinutes = 120
+        };
+
+        // 1. Add normally so interceptor doesn't fight us
+        dbContext.Movies.Add(movie);
         await dbContext.SaveChangesAsync();
+
+        // 2. Explicitly remove to trigger soft-delete interceptor logic
+        dbContext.Movies.Remove(movie);
+        await dbContext.SaveChangesAsync();
+
+        // 3. Clear cache to force SQL query
+        dbContext.ChangeTracker.Clear();
 
         var controller = CreateController(dbContext, "ROLE_ORGANIZER");
 
         // Act & Assert
-        // Prove that you cannot double-delete a record. It should just return 404.
-        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.Delete(movieId));
+        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.Delete(movie.Id));
         Assert.Contains("not found", ex.Message);
     }
 }

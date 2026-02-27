@@ -180,7 +180,7 @@ public class CinemaServiceTests
         // Act & Assert (Hacker tries to update)
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.UpdateCinemaAsync(cinemaId, request, "Hacker", false));
-        Assert.Equal("You do not own this cinema.", ex.Message);
+        Assert.Equal("You are not authorized to update this cinema.", ex.Message);
     }
 
     [Fact]
@@ -307,7 +307,7 @@ public class CinemaServiceTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.DeleteCinemaAsync(cinemaId, "Hacker", false));
-        Assert.Equal("You do not own this cinema.", ex.Message);
+        Assert.Equal("You are not authorized to delete this cinema.", ex.Message);
     }
 
     [Fact]

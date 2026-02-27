@@ -431,25 +431,32 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         await using var dbContext = CreateDbContext();
         var data = await SeedHierarchyAsync(dbContext, "Org-Owner");
 
-        var showtimeId = Guid.NewGuid();
-        dbContext.Showtimes.Add(new Showtime
+        var showtime = new Showtime
         {
-            Id = showtimeId,
+            Id = Guid.NewGuid(),
             MovieId = data.movie.Id,
             AuditoriumId = data.auditorium.Id,
             StartTimeUtc = DateTime.UtcNow,
             BasePrice = 10,
-            SeatAvailabilityState = new byte[100],
-            IsDeleted = true, // Ghost record!
-            DeletedAtUtc = DateTime.UtcNow
-        });
+            SeatAvailabilityState = new byte[100]
+            // DO NOT set IsDeleted here! The interceptor will just overwrite it.
+        };
+        dbContext.Showtimes.Add(showtime);
+        await dbContext.SaveChangesAsync(); // Saved normally (IsDeleted = false)
+
+        //  we explicitly tell EF Core to delete it!
+        // This triggers the EntityState.Deleted case in your interceptor, properly setting IsDeleted = true
+        dbContext.Showtimes.Remove(showtime);
         await dbContext.SaveChangesAsync();
+
+        // Clear the cache so the controller is forced to hit the SQL database
+        dbContext.ChangeTracker.Clear();
 
         var controller = CreateController(dbContext, "Org-Owner", "ROLE_ORGANIZER");
 
         // Act & Assert
-        // Proves that the Global Query Filter hides the soft-deleted record completely.
-        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.Delete(showtimeId));
+        // The record is now truly soft-deleted in the DB. The Global Query filter will hide it!
+        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.Delete(showtime.Id));
         Assert.Contains("not found", ex.Message);
     }
 }
