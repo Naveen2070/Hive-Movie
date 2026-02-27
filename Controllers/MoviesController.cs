@@ -11,8 +11,11 @@ namespace Hive_Movie.Controllers;
 /// This controller exposes public read-only catalog endpoints and restricted
 /// management endpoints secured via role-based access control (RBAC).
 /// 
-/// Only users with roles <c>ROLE_ORGANIZER</c> or <c>ROLE_SUPER_ADMIN</c>
-/// may create, update, or delete movies.
+/// Restricted to users with roles:
+/// - `ROLE_ORGANIZER`
+/// - `ROLE_SUPER_ADMIN`
+/// 
+/// These users may create, update, or delete movies within the global catalog.
 /// </remarks>
 [Route("api/[controller]")]
 [ApiController]
@@ -65,10 +68,8 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// <list type="bullet">
-    /// <item>ROLE_ORGANIZER</item>
-    /// <item>ROLE_SUPER_ADMIN</item>
-    /// </list>
+    /// - `ROLE_ORGANIZER`
+    /// - `ROLE_SUPER_ADMIN`
     /// 
     /// Creates a new movie record in the system.  
     /// The system automatically generates a sequential UUID v7
@@ -100,10 +101,8 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// <list type="bullet">
-    /// <item>ROLE_ORGANIZER</item>
-    /// <item>ROLE_SUPER_ADMIN</item>
-    /// </list>
+    /// - `ROLE_ORGANIZER`
+    /// - `ROLE_SUPER_ADMIN`
     /// 
     /// Performs a full replacement (HTTP PUT) of the movie's data.
     /// All properties must be provided in the request body.
@@ -133,10 +132,8 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// <list type="bullet">
-    /// <item>ROLE_ORGANIZER</item>
-    /// <item>ROLE_SUPER_ADMIN</item>
-    /// </list>
+    /// - `ROLE_ORGANIZER`
+    /// - `ROLE_SUPER_ADMIN`
     /// 
     /// Performs a soft-delete operation.  
     /// The record remains stored for historical auditing but is excluded

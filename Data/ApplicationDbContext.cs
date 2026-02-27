@@ -13,6 +13,7 @@ public class ApplicationDbContext(
     public DbSet<Auditorium> Auditoriums { get; set; }
     public DbSet<Showtime> Showtimes { get; set; }
     public DbSet<Ticket> Tickets { get; set; }
+    public DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

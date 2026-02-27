@@ -1,10 +1,12 @@
 ﻿using Hive_Movie.Data;
 using Hive_Movie.DTOs;
+using Hive_Movie.Infrastructure.Clients;
 using Hive_Movie.Models;
 using Hive_Movie.Services.CurrentUser;
 using Hive_Movie.Services.Tickets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Moq;
 namespace Tests.Integration;
 
@@ -90,8 +92,11 @@ public class SeatConcurrencyTests(SqlServerFixture fixture) : IAsyncLifetime
         var contextA = CreateContext("UserA");
         var contextB = CreateContext("UserB");
 
-        var serviceA = new TicketService(contextA, new MemoryCache(new MemoryCacheOptions()));
-        var serviceB = new TicketService(contextB, new MemoryCache(new MemoryCacheOptions()));
+        var mockIdentityClient = new Mock<IIdentityClient>();
+        var mockLogger = new Mock<ILogger<TicketService>>();
+
+        var serviceA = new TicketService(contextA, new MemoryCache(new MemoryCacheOptions()), mockIdentityClient.Object, mockLogger.Object);
+        var serviceB = new TicketService(contextB, new MemoryCache(new MemoryCacheOptions()), mockIdentityClient.Object, mockLogger.Object);
 
         var request = new ReserveTicketRequest(showtime.Id, [new SeatCoordinateDto(0, 0)]);
 
