@@ -3,7 +3,7 @@ using Hive_Movie.Infrastructure.Messaging;
 using Hive_Movie.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-namespace Hive_Movie.Services.Workers;
+namespace Hive_Movie.Workers;
 
 public class NotificationOutboxWorker(
     IServiceProvider serviceProvider,

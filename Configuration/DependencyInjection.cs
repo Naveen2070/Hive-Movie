@@ -8,7 +8,7 @@ using Hive_Movie.Services.CurrentUser;
 using Hive_Movie.Services.Movies;
 using Hive_Movie.Services.ShowTimes;
 using Hive_Movie.Services.Tickets;
-using Hive_Movie.Services.Workers;
+using Hive_Movie.Workers;
 using Refit;
 // Make sure this is imported!
 
