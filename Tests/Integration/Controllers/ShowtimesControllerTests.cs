@@ -273,7 +273,114 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.True(deleted!.IsDeleted);
     }
 
-    // --- 3. NOT FOUND & BAD INPUT EDGE CASES ---
+    // --- 3. FETCH BY MOVIE ID (PUBLIC ENDPOINT) ---
+
+    [Fact]
+    public async Task GetByMovieId_ValidMovieWithShowtimes_ReturnsOkWithChronologicalList()
+    {
+        // Arrange
+        await using var dbContext = CreateDbContext();
+        var data = await SeedHierarchyAsync(dbContext, "Org-Owner");
+
+        // Seed 1 past showtime, 2 future showtimes
+        dbContext.Showtimes.AddRange(
+            new Showtime
+            {
+                Id = Guid.NewGuid(),
+                MovieId = data.movie.Id,
+                AuditoriumId = data.auditorium.Id,
+                StartTimeUtc = DateTime.UtcNow.AddDays(-1),
+                BasePrice = 10,
+                SeatAvailabilityState = new byte[10]
+            },
+            new Showtime
+            {
+                Id = Guid.NewGuid(),
+                MovieId = data.movie.Id,
+                AuditoriumId = data.auditorium.Id,
+                StartTimeUtc = DateTime.UtcNow.AddDays(5),
+                BasePrice = 10,
+                SeatAvailabilityState = new byte[10]
+            },
+            new Showtime
+            {
+                Id = Guid.NewGuid(),
+                MovieId = data.movie.Id,
+                AuditoriumId = data.auditorium.Id,
+                StartTimeUtc = DateTime.UtcNow.AddDays(2),
+                BasePrice = 10,
+                SeatAvailabilityState = new byte[10]
+            }
+        );
+        await dbContext.SaveChangesAsync();
+
+        var controller = CreateController(dbContext, null, "ROLE_USER");
+
+        // Act
+        var result = await controller.GetByMovieId(data.movie.Id);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var returnedShowtimes = Assert.IsAssignableFrom<IEnumerable<ShowtimeResponse>>(okResult.Value).ToList();
+
+        Assert.Equal(2, returnedShowtimes.Count); // Past showtime ignored
+        Assert.True(returnedShowtimes[0].StartTimeUtc < returnedShowtimes[1].StartTimeUtc); // Sorted chronologically
+    }
+
+    [Fact]
+    public async Task GetByMovieId_SoftDeletedShowtime_IsExcluded()
+    {
+        // Arrange
+        await using var dbContext = CreateDbContext();
+        var data = await SeedHierarchyAsync(dbContext, "Org-Owner");
+
+        var showtime = new Showtime
+        {
+            Id = Guid.NewGuid(),
+            MovieId = data.movie.Id,
+            AuditoriumId = data.auditorium.Id,
+            StartTimeUtc = DateTime.UtcNow.AddDays(2),
+            BasePrice = 10,
+            SeatAvailabilityState = new byte[10]
+        };
+        dbContext.Showtimes.Add(showtime);
+        await dbContext.SaveChangesAsync();
+
+        // Soft delete it via the interceptor
+        dbContext.Showtimes.Remove(showtime);
+        await dbContext.SaveChangesAsync();
+
+        // Clear tracking to force a real DB hit
+        dbContext.ChangeTracker.Clear();
+
+        var controller = CreateController(dbContext, null, "ROLE_USER");
+
+        // Act
+        var result = await controller.GetByMovieId(data.movie.Id);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var returnedShowtimes = Assert.IsAssignableFrom<IEnumerable<ShowtimeResponse>>(okResult.Value);
+        Assert.Empty(returnedShowtimes);
+    }
+
+    [Fact]
+    public async Task GetByMovieId_NonExistentMovie_ReturnsOkWithEmptyList()
+    {
+        // Arrange
+        await using var dbContext = CreateDbContext();
+        var controller = CreateController(dbContext, null, "ROLE_USER");
+
+        // Act
+        var result = await controller.GetByMovieId(Guid.NewGuid());
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var returnedShowtimes = Assert.IsAssignableFrom<IEnumerable<ShowtimeResponse>>(okResult.Value);
+        Assert.Empty(returnedShowtimes); // Doesn't crash, just returns empty
+    }
+
+    // --- 4. NOT FOUND & BAD INPUT EDGE CASES ---
 
     [Fact]
     public async Task GetSeatMap_NonExistentShowtime_ThrowsKeyNotFoundException()
@@ -286,7 +393,6 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.GetSeatMap(Guid.NewGuid()));
         Assert.Contains("not found", ex.Message);
     }
-
 
     [Fact]
     public async Task Create_NonExistentMovie_ThrowsKeyNotFoundException()

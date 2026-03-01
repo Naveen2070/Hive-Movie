@@ -40,6 +40,27 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
         return Ok(await showtimeService.GetSeatMapAsync(id));
     }
 
+    /// <summary>
+    ///     Retrieves all upcoming showtimes for a specific movie.
+    /// </summary>
+    /// <remarks>
+    ///     Returns a chronologically ordered list of future showtimes for the specified movie.
+    ///     Past or soft-deleted showtimes are automatically excluded.
+    ///     This endpoint is publicly accessible.
+    /// </remarks>
+    /// <param name="movieId">The unique identifier (UUID v7) of the movie.</param>
+    /// <response code="200">The showtimes were successfully retrieved.</response>
+    /// <response code="404">The specified movie was not found.</response>
+    [AllowAnonymous]
+    [HttpGet("movie/{movieId:guid}")]
+    [ProducesResponseType(typeof(IEnumerable<ShowtimeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetByMovieId(Guid movieId)
+    {
+        var showtimes = await showtimeService.GetShowtimesByMovieIdAsync(movieId);
+        return Ok(showtimes);
+    }
+
     // -------------------------------
     // ORGANIZER SHOWTIME MANAGEMENT
     // -------------------------------

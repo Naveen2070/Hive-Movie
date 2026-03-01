@@ -60,6 +60,25 @@ public class ShowtimeService(
         return response;
     }
 
+    public async Task<IEnumerable<ShowtimeResponse>> GetShowtimesByMovieIdAsync(Guid movieId)
+    {
+        var currentUtc = DateTime.UtcNow;
+
+        var showtimes = await dbContext.Showtimes
+            .AsNoTracking()
+            .Where(s => s.MovieId == movieId && !s.IsDeleted && s.StartTimeUtc > currentUtc)
+            .OrderBy(s => s.StartTimeUtc)
+            .ToListAsync();
+
+        return showtimes.Select(s => new ShowtimeResponse(
+            s.Id,
+            s.MovieId,
+            s.AuditoriumId,
+            s.StartTimeUtc,
+            s.BasePrice
+        ));
+    }
+
     public async Task<ShowtimeResponse> CreateShowtimeAsync(CreateShowtimeRequest request, string currentUser, bool isAdmin)
     {
         // 1. Fetch Auditorium & Verify Ownership and Approval Status
