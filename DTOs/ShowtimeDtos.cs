@@ -35,6 +35,8 @@ public record ShowtimeSeatMapResponse(
     string AuditoriumName,
     int MaxRows,
     int MaxColumns,
+    decimal BasePrice,
+    List<SeatTierDto> Tiers,
     List<SeatStatusDto> SeatMap
 );
 

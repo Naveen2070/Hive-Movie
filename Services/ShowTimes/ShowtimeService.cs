@@ -45,14 +45,25 @@ public class ShowtimeService(
             }
         }
 
+        var tiers = showtime.Auditorium.LayoutConfiguration
+            .Tiers.Select(t => new SeatTierDto(
+                t.TierName,
+                t.PriceSurcharge,
+                t.Seats.Select(s => new SeatCoordinateDto(s.Row, s.Col)).ToList()
+            )).ToList();
+
+        // Inject BasePrice and Tiers into the response
         var response = new ShowtimeSeatMapResponse(
             showtime.Movie.Title,
             showtime.Auditorium.Cinema!.Name,
             showtime.Auditorium.Name,
             showtime.Auditorium.MaxRows,
             showtime.Auditorium.MaxColumns,
+            showtime.BasePrice,
+            tiers,
             seatMap
         );
+
 
         // 3. Save to RAM for 60 seconds
         cache.Set(cacheKey, response, TimeSpan.FromSeconds(60));

@@ -247,7 +247,8 @@ public class TicketServiceTests
         await dbContext.SaveChangesAsync();
 
         // Populate the cache to test that confirmation destroys the cache
-        cache.Set($"SeatMap_{showtime.Id}", new ShowtimeSeatMapResponse("M", "C", "A", 10, 10, []));
+        cache.Set($"SeatMap_{showtime.Id}", new ShowtimeSeatMapResponse("M", "C", "A", 10, 10, 15.00m,
+            [], []));
 
         // Act
         await service.ConfirmTicketPaymentAsync("HIVE-PAY");

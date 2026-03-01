@@ -108,7 +108,8 @@ public class ShowtimeServiceTests
         var showtimeId = Guid.NewGuid();
 
         // Inject a FAKE response directly into the cache (DB is completely empty!)
-        var fakeResponse = new ShowtimeSeatMapResponse("Cached Movie", "Cached Cinema", "A1", 10, 10, []);
+        var fakeResponse = new ShowtimeSeatMapResponse("Cached Movie", "Cached Cinema", "A1", 10, 10, 15.00m,
+            [], []);
         cache.Set($"SeatMap_{showtimeId}", fakeResponse);
 
         // Act
