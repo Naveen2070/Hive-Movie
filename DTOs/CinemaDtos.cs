@@ -33,7 +33,9 @@ public record CinemaResponse(
     Guid Id,
     string Name,
     string Location,
-    string ApprovalStatus)
+    string ContactEmail,
+    string ApprovalStatus
+)
 {
     public static CinemaResponse MapToResponse(Cinema cinema)
     {
@@ -41,6 +43,7 @@ public record CinemaResponse(
             cinema.Id,
             cinema.Name,
             cinema.Location,
+            cinema.ContactEmail,
             cinema.ApprovalStatus.ToString()
         );
     }

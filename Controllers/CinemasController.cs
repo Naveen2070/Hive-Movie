@@ -38,6 +38,28 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     }
 
     /// <summary>
+    ///     Retrieves all physical cinema locations.
+    /// </summary>
+    /// <remarks>
+    ///     Returns a complete list of all active cinemas in the system.
+    ///     Soft-deleted cinemas are automatically excluded.
+    ///     This endpoint is restricted to users with roles:
+    ///     - `ROLE_ORGANIZER`
+    /// </remarks>
+    /// <returns>A list of cinemas currently registered in the system.</returns>
+    /// <response code="200">Successfully retrieved the list of cinemas.</response>
+    [Authorize(Roles = "ROLE_ORGANIZER")]
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<CinemaResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAllByOrganizer()
+    {
+        var organizerId = User.FindFirst("id")?.Value
+            ?? throw new UnauthorizedAccessException("Missing User Id.");
+        return Ok(await cinemaService.GetAllCinemasByOrganizerAsync(organizerId));
+    }
+
+
+    /// <summary>
     /// Retrieves a specific cinema by its unique identifier.
     /// </summary>
     /// <remarks>

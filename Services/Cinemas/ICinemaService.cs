@@ -5,6 +5,7 @@ namespace Hive_Movie.Services.Cinemas;
 public interface ICinemaService
 {
     Task<IEnumerable<CinemaResponse>> GetAllCinemasAsync();
+    Task<IEnumerable<CinemaResponse>> GetAllCinemasByOrganizerAsync(string organizerId);
     Task<CinemaResponse> GetCinemaByIdAsync(Guid id);
     Task<CinemaResponse> CreateCinemaAsync(CreateCinemaRequest request, string organizerId);
     Task UpdateCinemaAsync(Guid id, UpdateCinemaRequest request, string currentUser, bool isAdmin);

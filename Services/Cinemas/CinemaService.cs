@@ -19,6 +19,12 @@ public class CinemaService(ApplicationDbContext dbContext) : ICinemaService
         return cinemas.Select(CinemaResponse.MapToResponse);
     }
 
+    public async Task<IEnumerable<CinemaResponse>> GetAllCinemasByOrganizerAsync(string organizerId)
+    {
+        var cinemas = await dbContext.Cinemas.Where(c => c.OrganizerId == organizerId).ToListAsync();
+        return cinemas.Select(CinemaResponse.MapToResponse);
+    }
+
     public async Task<CinemaResponse> GetCinemaByIdAsync(Guid id)
     {
         var cinema = await dbContext.Cinemas.FindAsync(id);
