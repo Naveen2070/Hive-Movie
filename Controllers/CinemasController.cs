@@ -49,7 +49,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <returns>A list of cinemas currently registered in the system.</returns>
     /// <response code="200">Successfully retrieved the list of cinemas.</response>
     [Authorize(Roles = "ROLE_ORGANIZER")]
-    [HttpGet]
+    [HttpGet("my")]
     [ProducesResponseType(typeof(IEnumerable<CinemaResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllByOrganizer()
     {
