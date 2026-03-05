@@ -5,6 +5,7 @@ using Hive_Movie.Infrastructure.Security;
 using Hive_Movie.Services.Auditoriums;
 using Hive_Movie.Services.Cinemas;
 using Hive_Movie.Services.CurrentUser;
+using Hive_Movie.Services.Dashboard;
 using Hive_Movie.Services.Movies;
 using Hive_Movie.Services.ShowTimes;
 using Hive_Movie.Services.Tickets;
@@ -32,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<ICinemaService, CinemaService>();
         services.AddScoped<IAuditoriumService, AuditoriumService>();
         services.AddScoped<ITicketService, TicketService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         // FluentValidation
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);

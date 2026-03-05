@@ -71,23 +71,40 @@ public class ShowtimeService(
         return response;
     }
 
-    public async Task<IEnumerable<ShowtimeResponse>> GetShowtimesByMovieIdAsync(Guid movieId)
+    public async Task<PagedResponse<ShowtimeResponse>> GetShowtimesByMovieIdAsync(
+        Guid movieId,
+        int page = 0,
+        int size = 20,
+        DateTime? fromDate = null,
+        DateTime? toDate = null)
     {
-        var currentUtc = DateTime.UtcNow;
+        // Default: Only show future showtimes if no date is provided
+        var start = fromDate ?? DateTime.UtcNow;
 
-        var showtimes = await dbContext.Showtimes
-            .AsNoTracking()
-            .Where(s => s.MovieId == movieId && !s.IsDeleted && s.StartTimeUtc > currentUtc)
-            .OrderBy(s => s.StartTimeUtc)
+        var query = dbContext.Showtimes.AsNoTracking()
+            .Include(s => s.Auditorium).ThenInclude(a => a!.Cinema)
+            .Where(s => !s.IsDeleted && s.MovieId == movieId && s.StartTimeUtc >= start);
+
+        // Optional end date filter
+        if (toDate.HasValue)
+        {
+            query = query.Where(s => s.StartTimeUtc <= toDate.Value);
+        }
+
+        var totalElements = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalElements / (double)size);
+
+        var showtimes = await query
+            .OrderBy(s => s.StartTimeUtc) // Earliest showtimes first
+            .Skip(page * size)
+            .Take(size)
             .ToListAsync();
 
-        return showtimes.Select(s => new ShowtimeResponse(
-            s.Id,
-            s.MovieId,
-            s.AuditoriumId,
-            s.StartTimeUtc,
-            s.BasePrice
+        var content = showtimes.Select(s => new ShowtimeResponse(
+            s.Id, s.MovieId, s.AuditoriumId, s.StartTimeUtc, s.BasePrice
         ));
+
+        return new PagedResponse<ShowtimeResponse>(content, page, size, totalElements, totalPages, page >= totalPages - 1);
     }
 
     public async Task<ShowtimeResponse> CreateShowtimeAsync(CreateShowtimeRequest request, string currentUser, bool isAdmin)

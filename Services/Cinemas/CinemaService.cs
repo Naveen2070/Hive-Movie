@@ -13,16 +13,47 @@ public class CinemaService(ApplicationDbContext dbContext) : ICinemaService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public async Task<IEnumerable<CinemaResponse>> GetAllCinemasAsync()
+    public async Task<PagedResponse<CinemaResponse>> GetAllCinemasAsync(int page = 0, int size = 10, string? search = null)
     {
-        var cinemas = await dbContext.Cinemas.ToListAsync();
-        return cinemas.Select(CinemaResponse.MapToResponse);
+        var query = dbContext.Cinemas.AsNoTracking().Where(c => !c.IsDeleted && c.ApprovalStatus == CinemaApprovalStatus.Approved);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(c => c.Name.Contains(search) || c.Location.Contains(search));
+        }
+
+        var totalElements = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalElements / (double)size);
+
+        var cinemas = await query.OrderBy(c => c.Name).Skip(page * size).Take(size).ToListAsync();
+
+        var content = cinemas.Select(c => new CinemaResponse(c.Id, c.Name, c.Location, c.ContactEmail, c.ApprovalStatus.ToString()));
+
+        return new PagedResponse<CinemaResponse>(content, page, size, totalElements, totalPages, page >= totalPages - 1);
     }
 
-    public async Task<IEnumerable<CinemaResponse>> GetAllCinemasByOrganizerAsync(string organizerId)
+    public async Task<PagedResponse<CinemaResponse>> GetAllCinemasByOrganizerAsync(
+        string organizerId,
+        int page = 0,
+        int size = 10,
+        string? search = null)
     {
-        var cinemas = await dbContext.Cinemas.Where(c => c.OrganizerId == organizerId).ToListAsync();
-        return cinemas.Select(CinemaResponse.MapToResponse);
+        var query = dbContext.Cinemas.AsNoTracking().Where(c =>
+            !c.IsDeleted && c.ApprovalStatus == CinemaApprovalStatus.Approved && c.OrganizerId.Equals(organizerId));
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(c => c.Name.Contains(search) || c.Location.Contains(search));
+        }
+
+        var totalElements = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalElements / (double)size);
+
+        var cinemas = await query.OrderBy(c => c.Name).Skip(page * size).Take(size).ToListAsync();
+
+        var content = cinemas.Select(c => new CinemaResponse(c.Id, c.Name, c.Location, c.ContactEmail, c.ApprovalStatus.ToString()));
+
+        return new PagedResponse<CinemaResponse>(content, page, size, totalElements, totalPages, page >= totalPages - 1);
     }
 
     public async Task<CinemaResponse> GetCinemaByIdAsync(Guid id)

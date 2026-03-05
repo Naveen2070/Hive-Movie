@@ -28,7 +28,9 @@ public record SeatCoordinateDto(
 /// <param name="AuditoriumName">The name of the room/screen. <example>IMAX Screen 1</example></param>
 /// <param name="MaxRows">The total number of rows in the grid. <example>15</example></param>
 /// <param name="MaxColumns">The total number of columns in the grid. <example>20</example></param>
-/// <param name="SeatMap">A flat list representing the status of every individual seat.</param>
+/// <param name="BasePrice">The base ticket price before applying seat tier surcharges. <example>15.50</example></param>
+/// <param name="Tiers">The list of seat tiers and their corresponding prices. <example>{ "TierName": "VIP", "Price": 17.50 }</example></param>
+/// <param name="SeatMap">A flat list representing the status of every individual seat. <example>{ "Row": 5, "Col": 10, "Status": "Available" }</example></param>
 public record ShowtimeSeatMapResponse(
     string MovieTitle,
     string CinemaName,

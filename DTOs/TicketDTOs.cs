@@ -58,6 +58,28 @@ public record MyTicketResponse(
 );
 
 /// <summary>
+///     The payload required to check in a ticket at the door.
+/// </summary>
+/// <param name="BookingReference">The unique booking reference code.
+///     <example>HIVE-A1B2C3</example>
+/// </param>
+public record CheckInRequest(
+    [Required] string BookingReference
+);
+
+/// <summary>
+///     Represents the result of a ticket check-in attempt.
+/// </summary>
+/// <param name="Status">The result of the scan (CHECKED_IN, ALREADY_CHECKED_IN, EXPIRED, INVALID_STATUS, NOT_FOUND).</param>
+/// <param name="AttendeeName">The name or email of the ticket holder.</param>
+/// <param name="TicketTierName">The tier or type of the ticket.</param>
+public record CheckInResponse(
+    string Status,
+    string AttendeeName,
+    string TicketTierName
+);
+
+/// <summary>
 ///     Represents the payload sent by the payment provider webhook.
 /// </summary>
 /// <param name="BookingReference">

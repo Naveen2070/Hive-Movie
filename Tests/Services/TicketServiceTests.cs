@@ -95,7 +95,7 @@ public class TicketServiceTests
         var mockIdentityClient = new Mock<IIdentityClient>();
         mockIdentityClient
             .Setup(c => c.GetUserByIdAsync(It.IsAny<long>()))
-            .ReturnsAsync(new UserSummaryDto(12345, "test@hive.com", "Test", "User"));
+            .ReturnsAsync(new UserSummaryDto(12345, "Test", "test@hive.com"));
 
         var mockLogger = new Mock<ILogger<TicketService>>();
 

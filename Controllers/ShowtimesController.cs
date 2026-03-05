@@ -49,18 +49,26 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     ///     This endpoint is publicly accessible.
     /// </remarks>
     /// <param name="movieId">The unique identifier (UUID v7) of the movie.</param>
+    /// <param name="page"></param>
+    /// <param name="size"></param>
+    /// <param name="fromDate"></param>
+    /// <param name="toDate"></param>
     /// <response code="200">The showtimes were successfully retrieved.</response>
     /// <response code="404">The specified movie was not found.</response>
     [AllowAnonymous]
     [HttpGet("movie/{movieId:guid}")]
     [ProducesResponseType(typeof(IEnumerable<ShowtimeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetByMovieId(Guid movieId)
+    public async Task<IActionResult> GetByMovieId(
+        Guid movieId,
+        [FromQuery] int page = 0,
+        [FromQuery] int size = 20,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null)
     {
-        var showtimes = await showtimeService.GetShowtimesByMovieIdAsync(movieId);
+        var showtimes = await showtimeService.GetShowtimesByMovieIdAsync(movieId, page, size, fromDate, toDate);
         return Ok(showtimes);
     }
-
     // -------------------------------
     // ORGANIZER SHOWTIME MANAGEMENT
     // -------------------------------

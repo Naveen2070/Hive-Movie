@@ -24,10 +24,33 @@ public class Ticket : BaseAuditableEntity
     public Showtime? Showtime { get; init; }
 }
 
+/// <summary>
+///     Represents the lifecycle state of a ticket reservation.
+/// </summary>
 public enum TicketStatus
 {
+    /// <summary>
+    ///     Seats are locked, but payment has not yet been confirmed.
+    /// </summary>
     Pending,
+
+    /// <summary>
+    ///     Payment is confirmed and the ticket is valid for entry.
+    /// </summary>
     Confirmed,
+
+    /// <summary>
+    ///     The ticket was successfully scanned and the attendee has entered the venue.
+    /// </summary>
+    Used,
+
+    /// <summary>
+    ///     The showtime has passed and the ticket was never used.
+    /// </summary>
     Expired,
+
+    /// <summary>
+    ///     The ticket was cancelled by the user or the organizer.
+    /// </summary>
     Cancelled
 }

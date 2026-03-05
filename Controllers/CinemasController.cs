@@ -22,6 +22,9 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <summary>
     /// Retrieves all physical cinema locations.
     /// </summary>
+    /// <param name="page"></param>
+    /// <param name="size"></param>
+    /// <param name="search"></param>
     /// <remarks>
     /// Returns a complete list of all active cinemas in the system.  
     /// Soft-deleted cinemas are automatically excluded.  
@@ -31,15 +34,18 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="200">Successfully retrieved the list of cinemas.</response>
     [AllowAnonymous]
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<CinemaResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(typeof(PagedResponse<CinemaResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] int page = 0, [FromQuery] int size = 10, [FromQuery] string? search = null)
     {
-        return Ok(await cinemaService.GetAllCinemasAsync());
+        return Ok(await cinemaService.GetAllCinemasAsync(page, size, search));
     }
 
     /// <summary>
     ///     Retrieves all physical cinema locations.
     /// </summary>
+    /// <param name="page"></param>
+    /// <param name="size"></param>
+    /// <param name="search"></param>
     /// <remarks>
     ///     Returns a complete list of all active cinemas in the system.
     ///     Soft-deleted cinemas are automatically excluded.
@@ -50,12 +56,11 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="200">Successfully retrieved the list of cinemas.</response>
     [Authorize(Roles = "ROLE_ORGANIZER")]
     [HttpGet("my")]
-    [ProducesResponseType(typeof(IEnumerable<CinemaResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAllByOrganizer()
+    [ProducesResponseType(typeof(PagedResponse<CinemaResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAllByOrganizer([FromQuery] int page = 0, [FromQuery] int size = 10, [FromQuery] string? search = null)
     {
-        var organizerId = User.FindFirst("id")?.Value
-            ?? throw new UnauthorizedAccessException("Missing User Id.");
-        return Ok(await cinemaService.GetAllCinemasByOrganizerAsync(organizerId));
+        var organizerId = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
+        return Ok(await cinemaService.GetAllCinemasByOrganizerAsync(organizerId, page, size, search));
     }
 
 

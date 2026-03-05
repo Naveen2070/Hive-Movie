@@ -161,6 +161,90 @@ public class TicketService(
         cache.Remove($"SeatMap_{ticket.ShowtimeId}");
     }
 
+    public async Task<CheckInResponse> CheckInAsync(string bookingReference)
+    {
+        // 1. Fetch Ticket + Showtime + Auditorium to get the Layout Configuration
+        var ticket = await dbContext.Tickets
+            .Include(t => t.Showtime)
+            .ThenInclude(s => s!.Auditorium)
+            .Include(t => t.Showtime)
+            .ThenInclude(s => s!.Movie)
+            .FirstOrDefaultAsync(t => t.BookingReference == bookingReference);
+
+        if (ticket == null)
+        {
+            return new CheckInResponse("NOT_FOUND", "Unknown", "Unknown");
+        }
+
+        // 2. Fetch Attendee Details gracefully
+        var attendeeName = "Guest";
+        try
+        {
+            if (long.TryParse(ticket.UserId, out var parsedUserId))
+            {
+                var userDto = await identityClient.GetUserByIdAsync(parsedUserId);
+                attendeeName = !string.IsNullOrWhiteSpace(userDto.FullName)
+                    ? userDto.FullName
+                    : userDto.Email;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not fetch user details for check-in. UserId: {UserId}", ticket.UserId);
+        }
+
+        // 3. Resolve the Actual Ticket Tiers
+        var layout = ticket.Showtime!.Auditorium!.LayoutConfiguration;
+
+        // Create a quick lookup dictionary for (Row, Col) -> Tier Name
+        var seatTierLookup = layout.Tiers.SelectMany(tier => tier.Seats.Select(seat =>
+                new KeyValuePair<(int Row, int Col), string>((seat.Row, seat.Col), tier.TierName)))
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        // Count how many seats belong to each tier
+        var tierCounts = new Dictionary<string, int>();
+        foreach (var seat in ticket.ReservedSeats)
+        {
+            var tierName = seatTierLookup.TryGetValue((seat.Row, seat.Col), out var name)
+                ? name
+                : "Standard";
+
+            if (!tierCounts.TryGetValue(tierName, out var count))
+            {
+                count = 0;
+            }
+            tierCounts[tierName] = count + 1;
+        }
+
+        // Format into a clean string: "VIP (2 Seats), Standard (1 Seat)"
+        var ticketTier = string.Join(", ", tierCounts.Select(kv =>
+            $"{kv.Key} ({kv.Value} Seat{(kv.Value > 1 ? "s" : "")})"));
+
+        // 4. Check statuses
+        if (ticket.Status == TicketStatus.Used)
+        {
+            return new CheckInResponse("ALREADY_CHECKED_IN", attendeeName, ticketTier);
+        }
+
+        if (ticket.Status != TicketStatus.Confirmed)
+        {
+            return new CheckInResponse("INVALID_STATUS", attendeeName, ticketTier);
+        }
+
+        var movieEndTimeUtc = ticket.Showtime.StartTimeUtc.AddMinutes(ticket.Showtime.Movie!.DurationMinutes);
+
+        if (DateTime.UtcNow > movieEndTimeUtc)
+        {
+            return new CheckInResponse("EXPIRED", attendeeName, ticketTier);
+        }
+
+        // 5. Success - Mark as Used
+        ticket.Status = TicketStatus.Used;
+        await dbContext.SaveChangesAsync();
+
+        return new CheckInResponse("CHECKED_IN", attendeeName, ticketTier);
+    }
+
     private static string GenerateBookingReference()
     {
         var shortUuid = Guid.NewGuid().ToString("N")[..8].ToUpper();

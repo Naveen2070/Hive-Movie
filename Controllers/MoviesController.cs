@@ -34,7 +34,7 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// <response code="200">Successfully retrieved the movie catalog.</response>
     [AllowAnonymous]
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<MovieResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<MovieResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var movies = await movieService.GetAllMoviesAsync();

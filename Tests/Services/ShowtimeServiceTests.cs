@@ -229,7 +229,7 @@ public class ShowtimeServiceTests
         await dbContext.SaveChangesAsync();
 
         // Act
-        var result = (await service.GetShowtimesByMovieIdAsync(data.Movie.Id)).ToList();
+        var result = (await service.GetShowtimesByMovieIdAsync(data.Movie.Id)).Content.ToList();
 
         // Assert
         Assert.Equal(2, result.Count); // 1 from seed (future), 1 new future, 1 past (ignored)
@@ -252,7 +252,7 @@ public class ShowtimeServiceTests
         var result = await service.GetShowtimesByMovieIdAsync(data.Movie.Id);
 
         // Assert
-        Assert.Empty(result);
+        Assert.Empty(result.Content);
     }
 
     [Fact]
@@ -266,6 +266,6 @@ public class ShowtimeServiceTests
         var result = await service.GetShowtimesByMovieIdAsync(Guid.NewGuid());
 
         // Assert
-        Assert.Empty(result);
+        Assert.Empty(result.Content);
     }
 }

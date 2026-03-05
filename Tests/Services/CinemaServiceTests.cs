@@ -32,7 +32,7 @@ public class CinemaServiceTests
         var result = await service.GetAllCinemasAsync();
 
         Assert.NotNull(result);
-        Assert.Empty(result);
+        Assert.Empty(result.Content);
     }
 
     [Fact]
@@ -48,7 +48,8 @@ public class CinemaServiceTests
                 Name = "Cinema A",
                 Location = "Loc A",
                 OrganizerId = "Org-1",
-                ContactEmail = "a@hive.com"
+                ContactEmail = "a@hive.com",
+                ApprovalStatus = CinemaApprovalStatus.Approved
             },
             new Cinema
             {
@@ -56,12 +57,13 @@ public class CinemaServiceTests
                 Name = "Cinema B",
                 Location = "Loc B",
                 OrganizerId = "Org-2",
-                ContactEmail = "b@hive.com"
+                ContactEmail = "b@hive.com",
+                ApprovalStatus = CinemaApprovalStatus.Approved
             }
         );
         await dbContext.SaveChangesAsync();
 
-        var result = (await service.GetAllCinemasAsync()).ToList();
+        var result = (await service.GetAllCinemasAsync()).Content.ToList();
 
         Assert.Equal(2, result.Count);
         Assert.Contains(result, c => c.Name == "Cinema A");
@@ -81,7 +83,8 @@ public class CinemaServiceTests
                 Name = "Org1 Cinema",
                 Location = "Loc",
                 OrganizerId = "Org-1",
-                ContactEmail = "a@hive.com"
+                ContactEmail = "a@hive.com",
+                ApprovalStatus = CinemaApprovalStatus.Approved
             },
             new Cinema
             {
@@ -89,12 +92,13 @@ public class CinemaServiceTests
                 Name = "Org2 Cinema",
                 Location = "Loc",
                 OrganizerId = "Org-2",
-                ContactEmail = "b@hive.com"
+                ContactEmail = "b@hive.com",
+                ApprovalStatus = CinemaApprovalStatus.Approved
             }
         );
         await dbContext.SaveChangesAsync();
 
-        var result = (await service.GetAllCinemasByOrganizerAsync("Org-1")).ToList();
+        var result = (await service.GetAllCinemasByOrganizerAsync("Org-1")).Content.ToList();
 
         Assert.Single(result);
         Assert.Equal("Org1 Cinema", result.First().Name);

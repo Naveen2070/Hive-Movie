@@ -28,6 +28,7 @@ public record UpdateCinemaRequest(
 /// <param name="Id">The unique system identifier for the cinema. <example>3fa85f64-5717-4562-b3fc-2c963f66afa6</example></param>
 /// <param name="Name">The official name of the cinema. <example>Hive Multiplex Downtown</example></param>
 /// <param name="Location">The physical address of the cinema. <example>123 Entertainment Blvd, Tech City, CA 90210</example></param>
+/// <param name="ContactEmail">The email address of the cinema contact person. <example>contact@hive.com</example></param>
 /// <param name="ApprovalStatus">The approval status of the cinema. <example>Approved</example></param>
 public record CinemaResponse(
     Guid Id,
