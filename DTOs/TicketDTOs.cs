@@ -46,6 +46,9 @@ public record TicketCheckoutResponse(
 /// <param name="CreatedAtUtc">The UTC timestamp when the ticket reservation was created. <example>2026-05-10T14:23:05Z</example></param>
 public record MyTicketResponse(
     Guid TicketId,
+    Guid MovieId,
+    Guid CinemaId,
+    Guid ShowtimeId,
     string BookingReference,
     string MovieTitle,
     string CinemaName,

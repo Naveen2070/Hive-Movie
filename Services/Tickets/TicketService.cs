@@ -72,17 +72,29 @@ public class TicketService(
     {
         var tickets = await dbContext.Tickets
             .AsNoTracking()
-            .Include(t => t.Showtime).ThenInclude(s => s!.Movie)
-            .Include(t => t.Showtime).ThenInclude(s => s!.Auditorium).ThenInclude(a => a!.Cinema)
+            .Include(t => t.Showtime)
+            .ThenInclude(s => s!.Movie)
+            .Include(t => t.Showtime)
+            .ThenInclude(s => s!.Auditorium)
+            .ThenInclude(a => a!.Cinema)
             .Where(t => t.UserId == currentUserId)
             .OrderByDescending(t => t.CreatedAtUtc)
             .ToListAsync();
 
         return tickets.Select(t => new MyTicketResponse(
-            t.Id, t.BookingReference, t.Showtime!.Movie!.Title, t.Showtime.Auditorium!.Cinema!.Name,
-            t.Showtime.Auditorium.Name, t.Showtime.StartTimeUtc,
-            t.ReservedSeats.Select(s => new SeatCoordinateDto(s.Row, s.Col)).ToList(),
-            t.TotalAmount, t.Status.ToString(), t.CreatedAtUtc
+            t.Id, // TicketId
+            t.Showtime!.MovieId, // MovieId 
+            t.Showtime.Auditorium!.CinemaId, // CinemaId 
+            t.ShowtimeId, // ShowtimeId 
+            t.BookingReference, // BookingReference
+            t.Showtime.Movie!.Title, // MovieTitle
+            t.Showtime.Auditorium.Cinema!.Name, // CinemaName
+            t.Showtime.Auditorium.Name, // AuditoriumName
+            t.Showtime.StartTimeUtc, // StartTimeUtc
+            t.ReservedSeats.Select(s => new SeatCoordinateDto(s.Row, s.Col)).ToList(), // ReservedSeats
+            t.TotalAmount, // TotalAmount
+            t.Status.ToString(), // Status
+            t.CreatedAtUtc // CreatedAtUtc
         ));
     }
 
