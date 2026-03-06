@@ -7,9 +7,6 @@ public static class DbInitializer
 {
     public static void Initialize(ApplicationDbContext context)
     {
-        // Apply any pending migrations automatically on startup!
-        context.Database.Migrate();
-
         // If we already have movies, the database has been seeded. Do nothing.
         if (context.Movies.Any())
         {
