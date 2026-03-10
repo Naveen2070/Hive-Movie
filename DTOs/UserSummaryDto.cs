@@ -2,6 +2,5 @@
 
 public record UserSummaryDto(
     long Id,
-    string Email,
-    string FirstName,
-    string LastName);
+    string FullName,
+    string Email);

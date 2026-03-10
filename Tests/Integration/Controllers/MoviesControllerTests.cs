@@ -70,15 +70,15 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "ROLE_USER");
+        var controller = CreateController(dbContext, "USER");
 
         // Act
         var result = await controller.GetAll();
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var list = Assert.IsAssignableFrom<IEnumerable<MovieResponse>>(okResult.Value);
-        Assert.Empty(list);
+        var response = Assert.IsType<PagedResponse<MovieResponse>>(okResult.Value);
+        Assert.Empty(response.Content);
     }
 
     [Fact]
@@ -106,14 +106,15 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         );
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, "ROLE_USER");
+        var controller = CreateController(dbContext, "USER");
 
         // Act
         var result = await controller.GetAll();
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var list = Assert.IsAssignableFrom<IEnumerable<MovieResponse>>(okResult.Value).ToList();
+        var response = Assert.IsType<PagedResponse<MovieResponse>>(okResult.Value);
+        var list = response.Content.ToList();
 
         Assert.Equal(2, list.Count);
         Assert.Equal("New Movie", list[0].Title); // Ensures temporal sorting is applied correctly!
@@ -131,7 +132,7 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         });
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, "ROLE_USER");
+        var controller = CreateController(dbContext, "USER");
 
         // Act
         var result = await controller.GetById(movieId);
@@ -148,7 +149,7 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "ROLE_USER");
+        var controller = CreateController(dbContext, "USER");
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.GetById(Guid.NewGuid()));
@@ -162,7 +163,7 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "ORGANIZER");
 
         var request = new CreateMovieRequest(
             "Inception",
@@ -202,7 +203,7 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         });
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "ORGANIZER");
         var request = new UpdateMovieRequest("New Title", "New Desc", 120, DateTime.UtcNow, null);
 
         // Act
@@ -220,7 +221,7 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     public async Task Update_NonExistentMovie_ThrowsKeyNotFoundException()
     {
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "ROLE_SUPER_ADMIN");
+        var controller = CreateController(dbContext, "SUPER_ADMIN");
 
         var request = new UpdateMovieRequest("N", "D", 100, DateTime.UtcNow, null);
 
@@ -241,7 +242,7 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         });
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "ORGANIZER");
 
         // Act
         var result = await controller.Delete(movieId);
@@ -260,7 +261,7 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     public async Task Delete_NonExistentMovie_ThrowsKeyNotFoundException()
     {
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "ORGANIZER");
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.Delete(Guid.NewGuid()));
     }
@@ -289,7 +290,7 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         // 3. Clear cache to force SQL query
         dbContext.ChangeTracker.Clear();
 
-        var controller = CreateController(dbContext, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "ORGANIZER");
         var request = new UpdateMovieRequest("Trying to revive", "Desc", 120, DateTime.UtcNow, null);
 
         // Act & Assert
@@ -319,7 +320,7 @@ public class MoviesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         // 3. Clear cache to force SQL query
         dbContext.ChangeTracker.Clear();
 
-        var controller = CreateController(dbContext, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "ORGANIZER");
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.Delete(movie.Id));

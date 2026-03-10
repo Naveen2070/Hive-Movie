@@ -2,19 +2,34 @@
 using Hive_Movie.DTOs;
 using Hive_Movie.Models;
 using Microsoft.EntityFrameworkCore;
-
 namespace Hive_Movie.Services.Movies;
 
 public class MovieService(ApplicationDbContext dbContext) : IMovieService
 {
-    public async Task<IEnumerable<MovieResponse>> GetAllMoviesAsync()
+    public async Task<PagedResponse<MovieResponse>> GetAllMoviesAsync(int page = 0, int size = 10, string? search = null)
     {
-        var movies = await dbContext.Movies
+        var query = dbContext.Movies.AsNoTracking().Where(m => !m.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(m => m.Title.Contains(search) || m.Description.Contains(search));
+        }
+
+        var totalElements = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalElements / (double)size);
+
+        var movies = await query
             .OrderByDescending(m => m.ReleaseDate)
+            .Skip(page * size)
+            .Take(size)
             .ToListAsync();
 
-        return movies.Select(m => new MovieResponse(
-            m.Id, m.Title, m.Description, m.DurationMinutes, m.ReleaseDate, m.PosterUrl));
+        var content = movies.Select(m => new MovieResponse(
+            m.Id, m.Title, m.Description, m.DurationMinutes, m.ReleaseDate, m.PosterUrl
+        ));
+
+        return new PagedResponse<MovieResponse>(
+            content, page, size, totalElements, totalPages, page >= totalPages - 1);
     }
 
     public async Task<MovieResponse> GetMovieByIdAsync(Guid id)
@@ -23,7 +38,7 @@ public class MovieService(ApplicationDbContext dbContext) : IMovieService
         return movie == null
             ? throw new KeyNotFoundException($"Movie with ID {id} not found.")
             : new MovieResponse(
-            movie.Id, movie.Title, movie.Description, movie.DurationMinutes, movie.ReleaseDate, movie.PosterUrl);
+                movie.Id, movie.Title, movie.Description, movie.DurationMinutes, movie.ReleaseDate, movie.PosterUrl);
     }
 
     public async Task<MovieResponse> CreateMovieAsync(CreateMovieRequest request)

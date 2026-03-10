@@ -9,7 +9,6 @@ namespace Tests.Services;
 
 public class CinemaServiceTests
 {
-    // Helper: Creates a pristine, isolated In-Memory database for every single test
     private static ApplicationDbContext GetInMemoryDbContext(string dbName)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -22,7 +21,7 @@ public class CinemaServiceTests
         return new ApplicationDbContext(options, mockUserService.Object);
     }
 
-    // --- 1. TESTS FOR: GetAllCinemasAsync ---
+    // --- 1. TESTS FOR: GetAllCinemasAsync & GetAllCinemasByOrganizerAsync ---
 
     [Fact]
     public async Task GetAllCinemasAsync_ReturnsEmptyList_WhenNoCinemasExist()
@@ -33,7 +32,7 @@ public class CinemaServiceTests
         var result = await service.GetAllCinemasAsync();
 
         Assert.NotNull(result);
-        Assert.Empty(result);
+        Assert.Empty(result.Content);
     }
 
     [Fact]
@@ -49,7 +48,8 @@ public class CinemaServiceTests
                 Name = "Cinema A",
                 Location = "Loc A",
                 OrganizerId = "Org-1",
-                ContactEmail = "a@hive.com"
+                ContactEmail = "a@hive.com",
+                ApprovalStatus = CinemaApprovalStatus.Approved
             },
             new Cinema
             {
@@ -57,16 +57,51 @@ public class CinemaServiceTests
                 Name = "Cinema B",
                 Location = "Loc B",
                 OrganizerId = "Org-2",
-                ContactEmail = "b@hive.com"
+                ContactEmail = "b@hive.com",
+                ApprovalStatus = CinemaApprovalStatus.Approved
             }
         );
         await dbContext.SaveChangesAsync();
 
-        var result = (await service.GetAllCinemasAsync()).ToList();
+        var result = (await service.GetAllCinemasAsync()).Content.ToList();
 
         Assert.Equal(2, result.Count);
         Assert.Contains(result, c => c.Name == "Cinema A");
         Assert.Contains(result, c => c.Name == "Cinema B");
+    }
+
+    [Fact]
+    public async Task GetAllCinemasByOrganizerAsync_ReturnsOnlyOrganizersCinemas()
+    {
+        var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
+        var service = new CinemaService(dbContext);
+
+        dbContext.Cinemas.AddRange(
+            new Cinema
+            {
+                Id = Guid.NewGuid(),
+                Name = "Org1 Cinema",
+                Location = "Loc",
+                OrganizerId = "Org-1",
+                ContactEmail = "a@hive.com",
+                ApprovalStatus = CinemaApprovalStatus.Approved
+            },
+            new Cinema
+            {
+                Id = Guid.NewGuid(),
+                Name = "Org2 Cinema",
+                Location = "Loc",
+                OrganizerId = "Org-2",
+                ContactEmail = "b@hive.com",
+                ApprovalStatus = CinemaApprovalStatus.Approved
+            }
+        );
+        await dbContext.SaveChangesAsync();
+
+        var result = (await service.GetAllCinemasByOrganizerAsync("Org-1")).Content.ToList();
+
+        Assert.Single(result);
+        Assert.Equal("Org1 Cinema", result.First().Name);
     }
 
     // --- 2. TESTS FOR: GetCinemaByIdAsync ---
@@ -108,7 +143,7 @@ public class CinemaServiceTests
     // --- 3. TESTS FOR: CreateCinemaAsync ---
 
     [Fact]
-    public async Task CreateCinemaAsync_ValidRequest_SavesToDatabase_AndForcesPendingStatus()
+    public async Task CreateCinemaAsync_ValidRequest_SavesToDatabase_AndCreatesOutboxMessage()
     {
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
@@ -127,6 +162,11 @@ public class CinemaServiceTests
         Assert.NotNull(savedCinema);
         Assert.Equal(organizerId, savedCinema.OrganizerId);
         Assert.Equal(CinemaApprovalStatus.Pending, savedCinema.ApprovalStatus);
+
+        var outboxMessage = await dbContext.OutboxMessages.FirstOrDefaultAsync();
+        Assert.NotNull(outboxMessage);
+        Assert.Equal("EmailNotification", outboxMessage.EventType);
+        Assert.Contains("CINEMA_PENDING_APPROVAL", outboxMessage.Payload);
     }
 
     // --- 4. TESTS FOR: UpdateCinemaAsync ---
@@ -150,7 +190,6 @@ public class CinemaServiceTests
 
         var request = new UpdateCinemaRequest("New Name", "New Loc");
 
-        // Act (Passed "Org-1" as the currentUser, isAdmin = false)
         await service.UpdateCinemaAsync(cinemaId, request, "Org-1", false);
 
         var updatedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
@@ -177,7 +216,6 @@ public class CinemaServiceTests
 
         var request = new UpdateCinemaRequest("Hacked Name", "Hacked Loc");
 
-        // Act & Assert (Hacker tries to update)
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.UpdateCinemaAsync(cinemaId, request, "Hacker", false));
         Assert.Equal("You are not authorized to update this cinema.", ex.Message);
@@ -202,7 +240,6 @@ public class CinemaServiceTests
 
         var request = new UpdateCinemaRequest("Admin Updated", "Loc");
 
-        // Act (Admin doesn't own it, but isAdmin = true)
         await service.UpdateCinemaAsync(cinemaId, request, "AdminUser", true);
 
         var updatedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
@@ -223,7 +260,7 @@ public class CinemaServiceTests
     // --- 5. TESTS FOR: UpdateCinemaStatusAsync (Admin Action) ---
 
     [Fact]
-    public async Task UpdateCinemaStatusAsync_WhenCinemaExists_UpdatesStatusSuccessfully()
+    public async Task UpdateCinemaStatusAsync_WhenCinemaExists_UpdatesStatus_AndCreatesOutboxMessage()
     {
         var dbContext = GetInMemoryDbContext(Guid.NewGuid().ToString());
         var service = new CinemaService(dbContext);
@@ -244,6 +281,11 @@ public class CinemaServiceTests
 
         var updatedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
         Assert.Equal(CinemaApprovalStatus.Approved, updatedCinema!.ApprovalStatus);
+
+        var outboxMessage = await dbContext.OutboxMessages.FirstOrDefaultAsync();
+        Assert.NotNull(outboxMessage);
+        Assert.Equal("EmailNotification", outboxMessage.EventType);
+        Assert.Contains("CINEMA_STATUS_UPDATE", outboxMessage.Payload);
     }
 
     [Fact]
@@ -275,7 +317,6 @@ public class CinemaServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        // Act
         await service.DeleteCinemaAsync(cinemaId, "Org-1", false);
 
         var softDeletedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
@@ -304,7 +345,6 @@ public class CinemaServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        // Act & Assert
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.DeleteCinemaAsync(cinemaId, "Hacker", false));
         Assert.Equal("You are not authorized to delete this cinema.", ex.Message);
@@ -327,7 +367,6 @@ public class CinemaServiceTests
         });
         await dbContext.SaveChangesAsync();
 
-        // Act
         await service.DeleteCinemaAsync(cinemaId, "AdminUser", true);
 
         var softDeletedCinema = await dbContext.Cinemas.FindAsync(cinemaId);

@@ -14,7 +14,6 @@ namespace Tests.Integration.Controllers;
 [Collection("Database collection")]
 public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
 {
-    // Reset the database before every single test to guarantee a clean slate
     public Task InitializeAsync()
     {
         return fixture.ResetDatabaseAsync();
@@ -24,8 +23,6 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         return Task.CompletedTask;
     }
-
-    // --- TEST INFRASTRUCTURE HELPERS ---
 
     private ApplicationDbContext CreateDbContext()
     {
@@ -39,17 +36,14 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
 
     private CinemasController CreateController(ApplicationDbContext dbContext, string? userId, string role)
     {
-        // 1. Setup the real service connecting to the real Testcontainers DB
         var service = new CinemaService(dbContext);
         var controller = new CinemasController(service);
 
-        // 2. Fake the JWT Claims Principal!
         var claims = new List<Claim>
         {
             new(ClaimTypes.Role, role)
         };
 
-        // Only add the ID claim if one was provided (helps test the missing ID edge case)
         if (userId != null)
         {
             claims.Add(new Claim("id", userId));
@@ -58,7 +52,6 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);
 
-        // 3. Attach the fake user to the Controller's HttpContext
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -70,96 +63,97 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         return controller;
     }
 
-    // --- 1. GET ALL & GET BY ID (Public Read Endpoints) ---
+    private async static Task<Cinema> SeedCinemaAsync(
+        ApplicationDbContext dbContext,
+        string organizerId = "Org1",
+        string name = "Test Cinema",
+        CinemaApprovalStatus status = CinemaApprovalStatus.Approved)
+    {
+        var cinema = new Cinema
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Location = "Test Location",
+            OrganizerId = organizerId,
+            ContactEmail = $"{organizerId}@test.com",
+            ApprovalStatus = status
+        };
+        dbContext.Cinemas.Add(cinema);
+        await dbContext.SaveChangesAsync();
+        return cinema;
+    }
+
+    // --- 1. GET ALL & GET BY ID (Public & Organizer Read Endpoints) ---
 
     [Fact]
     public async Task GetAll_ReturnsEmptyList_WhenNoCinemasExist()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
 
-        // Act
         var result = await controller.GetAll();
 
-        // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var list = Assert.IsAssignableFrom<IEnumerable<CinemaResponse>>(okResult.Value);
-        Assert.Empty(list);
+        var response = Assert.IsType<PagedResponse<CinemaResponse>>(okResult.Value);
+        Assert.Empty(response.Content);
     }
 
     [Fact]
     public async Task GetAll_ReturnsCinemas_WhenDataExists()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
-        dbContext.Cinemas.AddRange(
-            new Cinema
-            {
-                Id = Guid.NewGuid(),
-                Name = "Cinema 1",
-                Location = "Loc 1",
-                OrganizerId = "Org1",
-                ContactEmail = "1@test.com"
-            },
-            new Cinema
-            {
-                Id = Guid.NewGuid(),
-                Name = "Cinema 2",
-                Location = "Loc 2",
-                OrganizerId = "Org2",
-                ContactEmail = "2@test.com"
-            }
-        );
-        await dbContext.SaveChangesAsync();
+        await SeedCinemaAsync(dbContext, "Org1", "Cinema 1");
+        await SeedCinemaAsync(dbContext, "Org2", "Cinema 2");
 
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
 
-        // Act
         var result = await controller.GetAll();
 
-        // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var list = Assert.IsAssignableFrom<IEnumerable<CinemaResponse>>(okResult.Value);
-        Assert.Equal(2, list.Count());
+        var response = Assert.IsType<PagedResponse<CinemaResponse>>(okResult.Value);
+        Assert.Equal(2, response.Content.Count());
+    }
+
+    [Fact]
+    public async Task GetAllByOrganizer_ReturnsOnlyCinemasForLoggedInOrganizer()
+    {
+        await using var dbContext = CreateDbContext();
+        await SeedCinemaAsync(dbContext, "Org1", "Org1 Cinema");
+        await SeedCinemaAsync(dbContext, "Org2", "Org2 Cinema");
+
+        var controller = CreateController(dbContext, "Org1", "ORGANIZER");
+
+        var result = await controller.GetAllByOrganizer();
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<PagedResponse<CinemaResponse>>(okResult.Value);
+        var list = response.Content.ToList();
+        Assert.Single(list);
+        Assert.Equal("Org1 Cinema", list.First().Name);
     }
 
     [Fact]
     public async Task GetById_ExistingCinema_ReturnsOkWithData()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
-        var cinemaId = Guid.NewGuid();
-        dbContext.Cinemas.Add(new Cinema
-        {
-            Id = cinemaId,
-            Name = "IMAX Center",
-            Location = "Downtown",
-            OrganizerId = "Org1",
-            ContactEmail = "test@test.com"
-        });
-        await dbContext.SaveChangesAsync();
+        var cinema = await SeedCinemaAsync(dbContext, "Org1", "IMAX Center");
 
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
 
-        // Act
-        var result = await controller.GetById(cinemaId);
+        var result = await controller.GetById(cinema.Id);
 
-        // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<CinemaResponse>(okResult.Value);
-        Assert.Equal(cinemaId, response.Id);
+        Assert.Equal(cinema.Id, response.Id);
         Assert.Equal("IMAX Center", response.Name);
     }
 
     [Fact]
     public async Task GetById_NonExistentCinema_ThrowsKeyNotFoundException()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
 
-        // Act & Assert
         var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.GetById(Guid.NewGuid()));
         Assert.Contains("not found", ex.Message);
     }
@@ -167,42 +161,40 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     // --- 2. CREATE (POST) ---
 
     [Fact]
-    public async Task Create_ValidRequest_ReturnsCreatedAtAction_AndSavesToDb()
+    public async Task Create_ValidRequest_ReturnsCreatedAtAction_AndSavesToDb_WithOutboxMessage()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
         var organizerId = "Org-Owner-123";
-        var controller = CreateController(dbContext, organizerId, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, organizerId, "ORGANIZER");
 
         var request = new CreateCinemaRequest("New Cinema", "New Location", "contact@cinema.com");
 
-        // Act
         var result = await controller.Create(request);
 
-        // Assert HTTP Response
         var createdResult = Assert.IsType<CreatedAtActionResult>(result);
         var responseDto = Assert.IsType<CinemaResponse>(createdResult.Value);
 
         Assert.Equal("New Cinema", responseDto.Name);
-        Assert.Equal(nameof(CinemaApprovalStatus.Pending), responseDto.ApprovalStatus); // Proves business logic applied
+        Assert.Equal(nameof(CinemaApprovalStatus.Pending), responseDto.ApprovalStatus);
 
-        // Assert Database Integrity
         var savedCinema = await dbContext.Cinemas.FindAsync(responseDto.Id);
         Assert.NotNull(savedCinema);
-        Assert.Equal(organizerId, savedCinema.OrganizerId); // Proves JWT extraction worked
+        Assert.Equal(organizerId, savedCinema.OrganizerId);
+
+        // Assert Outbox Message was created for the Email
+        var outboxMessage = await dbContext.OutboxMessages.FirstOrDefaultAsync();
+        Assert.NotNull(outboxMessage);
+        Assert.Equal("EmailNotification", outboxMessage.EventType);
+        Assert.Contains("CINEMA_PENDING_APPROVAL", outboxMessage.Payload);
     }
 
     [Fact]
     public async Task Create_MissingUserIdClaim_ThrowsUnauthorizedAccess()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
-
-        // Pass NULL for the User ID to simulate a malformed JWT Token
-        var controller = CreateController(dbContext, null, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, null, "ORGANIZER");
         var request = new CreateCinemaRequest("Name", "Loc", "email@email.com");
 
-        // Act & Assert
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Create(request));
         Assert.Equal("Missing User Id.", ex.Message);
     }
@@ -210,39 +202,32 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     // --- 3. UPDATE STATUS (PATCH) - SUPER ADMIN ONLY ---
 
     [Fact]
-    public async Task UpdateStatus_ValidAdmin_UpdatesStatusAndReturnsNoContent()
+    public async Task UpdateStatus_ValidAdmin_UpdatesStatus_AndCreatesOutboxMessage()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
-        var cinemaId = Guid.NewGuid();
-        dbContext.Cinemas.Add(new Cinema
-        {
-            Id = cinemaId,
-            Name = "Test Cinema",
-            Location = "Loc",
-            OrganizerId = "Org",
-            ContactEmail = "e@e.com",
-            ApprovalStatus = CinemaApprovalStatus.Pending
-        });
-        await dbContext.SaveChangesAsync();
+        var cinema = await SeedCinemaAsync(dbContext, "Org", "Test Cinema", CinemaApprovalStatus.Pending);
 
-        var controller = CreateController(dbContext, "SuperAdmin", "ROLE_SUPER_ADMIN");
+        var controller = CreateController(dbContext, "SuperAdmin", "SUPER_ADMIN");
 
-        // Act
-        var result = await controller.UpdateStatus(cinemaId, CinemaApprovalStatus.Approved);
+        var result = await controller.UpdateStatus(cinema.Id, CinemaApprovalStatus.Approved);
 
-        // Assert
         Assert.IsType<NoContentResult>(result);
 
-        var updatedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
+        var updatedCinema = await dbContext.Cinemas.FindAsync(cinema.Id);
         Assert.Equal(CinemaApprovalStatus.Approved, updatedCinema!.ApprovalStatus);
+
+        // Assert Outbox Message was created for the Email
+        var outboxMessage = await dbContext.OutboxMessages.FirstOrDefaultAsync();
+        Assert.NotNull(outboxMessage);
+        Assert.Equal("EmailNotification", outboxMessage.EventType);
+        Assert.Contains("CINEMA_STATUS_UPDATE", outboxMessage.Payload);
     }
 
     [Fact]
     public async Task UpdateStatus_NonExistentCinema_ThrowsKeyNotFoundException()
     {
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "SuperAdmin", "ROLE_SUPER_ADMIN");
+        var controller = CreateController(dbContext, "SuperAdmin", "SUPER_ADMIN");
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             controller.UpdateStatus(Guid.NewGuid(), CinemaApprovalStatus.Approved));
@@ -253,29 +238,17 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Update_ValidRequest_UpdatesDetailsAndReturnsNoContent()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
-        var cinemaId = Guid.NewGuid();
-        dbContext.Cinemas.Add(new Cinema
-        {
-            Id = cinemaId,
-            Name = "Old Name",
-            Location = "Old Loc",
-            OrganizerId = "Org",
-            ContactEmail = "e@e.com"
-        });
-        await dbContext.SaveChangesAsync();
+        var cinema = await SeedCinemaAsync(dbContext, "Org", "Old Name");
 
-        var controller = CreateController(dbContext, "Org", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org", "ORGANIZER");
         var request = new UpdateCinemaRequest("New Name", "New Loc");
 
-        // Act
-        var result = await controller.Update(cinemaId, request);
+        var result = await controller.Update(cinema.Id, request);
 
-        // Assert
         Assert.IsType<NoContentResult>(result);
 
-        var updatedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
+        var updatedCinema = await dbContext.Cinemas.FindAsync(cinema.Id);
         Assert.Equal("New Name", updatedCinema!.Name);
         Assert.Equal("New Loc", updatedCinema.Location);
     }
@@ -284,7 +257,7 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     public async Task Update_NonExistentCinema_ThrowsKeyNotFoundException()
     {
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "Org", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org", "ORGANIZER");
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             controller.Update(Guid.NewGuid(), new UpdateCinemaRequest("N", "L")));
@@ -295,37 +268,25 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Delete_ExistingCinema_SoftDeletesAndReturnsNoContent()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
-        var cinemaId = Guid.NewGuid();
-        dbContext.Cinemas.Add(new Cinema
-        {
-            Id = cinemaId,
-            Name = "To Delete",
-            Location = "Loc",
-            OrganizerId = "Org",
-            ContactEmail = "e@e.com"
-        });
-        await dbContext.SaveChangesAsync();
+        var cinema = await SeedCinemaAsync(dbContext, "Org", "To Delete");
 
-        var controller = CreateController(dbContext, "Org", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org", "ORGANIZER");
 
-        // Act
-        var result = await controller.Delete(cinemaId);
+        var result = await controller.Delete(cinema.Id);
 
-        // Assert
         Assert.IsType<NoContentResult>(result);
 
-        var deletedCinema = await dbContext.Cinemas.FindAsync(cinemaId);
+        var deletedCinema = await dbContext.Cinemas.FindAsync(cinema.Id);
         Assert.NotNull(deletedCinema);
-        Assert.True(deletedCinema.IsDeleted); // Proves Soft Delete triggered
+        Assert.True(deletedCinema.IsDeleted);
     }
 
     [Fact]
     public async Task Delete_NonExistentCinema_ThrowsKeyNotFoundException()
     {
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "Org", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org", "ORGANIZER");
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.Delete(Guid.NewGuid()));
     }
@@ -335,85 +296,44 @@ public class CinemasControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Update_WrongOrganizer_ThrowsUnauthorizedAccessException()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
         var realOwnerId = "Org-RealOwner";
-        var cinemaId = Guid.NewGuid();
+        var cinema = await SeedCinemaAsync(dbContext, realOwnerId, "Safe Cinema");
 
-        // RealOwner creates a cinema
-        dbContext.Cinemas.Add(new Cinema
-        {
-            Id = cinemaId,
-            Name = "Safe Cinema",
-            Location = "Loc",
-            OrganizerId = realOwnerId,
-            ContactEmail = "e@e.com"
-        });
-        await dbContext.SaveChangesAsync();
-
-        // The Hacker is logged in as an Organizer, but they DO NOT own this cinema
-        var controller = CreateController(dbContext, "Hacker-Org", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Hacker-Org", "ORGANIZER");
         var request = new UpdateCinemaRequest("Hacked Name", "Hacked Loc");
 
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Update(cinemaId, request));
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Update(cinema.Id, request));
         Assert.Equal("You are not authorized to update this cinema.", ex.Message);
     }
 
     [Fact]
     public async Task Delete_WrongOrganizer_ThrowsUnauthorizedAccessException()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
         var realOwnerId = "Org-RealOwner";
-        var cinemaId = Guid.NewGuid();
+        var cinema = await SeedCinemaAsync(dbContext, realOwnerId, "Safe Cinema");
 
-        dbContext.Cinemas.Add(new Cinema
-        {
-            Id = cinemaId,
-            Name = "Safe Cinema",
-            Location = "Loc",
-            OrganizerId = realOwnerId,
-            ContactEmail = "e@e.com"
-        });
-        await dbContext.SaveChangesAsync();
+        var controller = CreateController(dbContext, "Hacker-Org", "ORGANIZER");
 
-        // Hacker attempts to delete it
-        var controller = CreateController(dbContext, "Hacker-Org", "ROLE_ORGANIZER");
-
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Delete(cinemaId));
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Delete(cinema.Id));
         Assert.Equal("You are not authorized to delete this cinema.", ex.Message);
     }
 
     [Fact]
     public async Task Delete_SuperAdmin_OverridesOwnershipCheck_AndReturnsNoContent()
     {
-        // Arrange
         await using var dbContext = CreateDbContext();
         var realOwnerId = "Org-RealOwner";
-        var cinemaId = Guid.NewGuid();
+        var cinema = await SeedCinemaAsync(dbContext, realOwnerId, "Admin Target");
 
-        dbContext.Cinemas.Add(new Cinema
-        {
-            Id = cinemaId,
-            Name = "Admin Target",
-            Location = "Loc",
-            OrganizerId = realOwnerId,
-            ContactEmail = "e@e.com"
-        });
-        await dbContext.SaveChangesAsync();
+        var controller = CreateController(dbContext, "SuperAdminUser", "SUPER_ADMIN");
 
-        // Admin doesn't own it, but has the SUPER_ADMIN role
-        var controller = CreateController(dbContext, "SuperAdminUser", "ROLE_SUPER_ADMIN");
+        var result = await controller.Delete(cinema.Id);
 
-        // Act
-        var result = await controller.Delete(cinemaId);
-
-        // Assert
         Assert.IsType<NoContentResult>(result);
 
-        var deleted = await dbContext.Cinemas.FindAsync(cinemaId);
+        var deleted = await dbContext.Cinemas.FindAsync(cinema.Id);
         Assert.True(deleted!.IsDeleted);
     }
 }

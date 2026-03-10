@@ -112,4 +112,22 @@ public class TicketsController(ITicketService ticketService) : ControllerBase
         await ticketService.ConfirmTicketPaymentAsync(payload.BookingReference);
         return Ok();
     }
+
+    /// <summary>
+    ///     Scans and checks in a ticket at the door.
+    /// </summary>
+    /// <remarks>
+    ///     Used by the Organizer Scanner App. Verifies the ticket is paid and valid,
+    ///     then updates the status to 'Used'. Returns structured status codes for the UI.
+    /// </remarks>
+    /// <param name="request">Contains the booking reference from the scanned QR code.</param>
+    /// <response code="200">Returns the check-in evaluation result.</response>
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN,STAFF")]
+    [HttpPost("check-in")]
+    [ProducesResponseType(typeof(CheckInResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CheckInTicket([FromBody] CheckInRequest request)
+    {
+        var result = await ticketService.CheckInAsync(request.BookingReference);
+        return Ok(result);
+    }
 }

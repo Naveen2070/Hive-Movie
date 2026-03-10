@@ -45,19 +45,66 @@ public class ShowtimeService(
             }
         }
 
+        var tiers = showtime.Auditorium.LayoutConfiguration
+            .Tiers.Select(t => new SeatTierDto(
+                t.TierName,
+                t.PriceSurcharge,
+                t.Seats.Select(s => new SeatCoordinateDto(s.Row, s.Col)).ToList()
+            )).ToList();
+
+        // Inject BasePrice and Tiers into the response
         var response = new ShowtimeSeatMapResponse(
             showtime.Movie.Title,
             showtime.Auditorium.Cinema!.Name,
             showtime.Auditorium.Name,
             showtime.Auditorium.MaxRows,
             showtime.Auditorium.MaxColumns,
+            showtime.BasePrice,
+            tiers,
             seatMap
         );
+
 
         // 3. Save to RAM for 60 seconds
         cache.Set(cacheKey, response, TimeSpan.FromSeconds(60));
 
         return response;
+    }
+
+    public async Task<PagedResponse<ShowtimeResponse>> GetShowtimesByMovieIdAsync(
+        Guid movieId,
+        int page = 0,
+        int size = 20,
+        DateTime? fromDate = null,
+        DateTime? toDate = null)
+    {
+        // Default: Only show future showtimes if no date is provided
+        var start = fromDate ?? DateTime.UtcNow;
+
+        var query = dbContext.Showtimes.AsNoTracking()
+            .Include(s => s.Auditorium).ThenInclude(a => a!.Cinema)
+            .Where(s => !s.IsDeleted && s.MovieId == movieId && s.StartTimeUtc >= start);
+
+        // Optional end date filter
+        if (toDate.HasValue)
+        {
+            query = query.Where(s => s.StartTimeUtc <= toDate.Value);
+        }
+
+        var totalElements = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalElements / (double)size);
+
+        var showtimes = await query
+            .OrderBy(s => s.StartTimeUtc) // Earliest showtimes first
+            .Skip(page * size)
+            .Take(size)
+            .ToListAsync();
+
+        var content = showtimes.Select(s => new ShowtimeResponse(
+            s.Id, s.MovieId, s.AuditoriumId, s.StartTimeUtc, s.BasePrice
+        ));
+
+        return new PagedResponse<ShowtimeResponse>(content, page, size, totalElements, totalPages, page >= totalPages - 1);
     }
 
     public async Task<ShowtimeResponse> CreateShowtimeAsync(CreateShowtimeRequest request, string currentUser, bool isAdmin)

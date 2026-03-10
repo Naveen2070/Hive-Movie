@@ -1,12 +1,17 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Hive_Movie.Infrastructure.Security;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-
+using System.Security.Claims;
 namespace Hive_Movie.Configuration;
 
 public static class JwtConfig
 {
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
+        // Add the Multi-Tenant Claims Transformer
+        services.AddTransient<IClaimsTransformation, MultiTenantClaimsTransformation>();
+
         // 1. Grab the secret key from appsettings.json
         var jwtSecret = configuration["Jwt:Secret"]
             ?? throw new InvalidOperationException("JWT Secret is missing from configuration.");
@@ -35,8 +40,8 @@ public static class JwtConfig
                     // NO: We don't have these, so tell .NET not to crash if they are missing
                     ValidateIssuer = false,
                     ValidateAudience = false,
-                    // YES: Map the "roles" claim in the JWT to User.IsInRole() checks
-                    RoleClaimType = "roles",
+                    // YES: Map the standard Role claim to User.IsInRole() checks
+                    RoleClaimType = ClaimTypes.Role,
                     NameClaimType = "sub"
                 };
                 options.Events = new JwtBearerEvents

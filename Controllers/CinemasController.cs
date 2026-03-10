@@ -22,6 +22,9 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <summary>
     /// Retrieves all physical cinema locations.
     /// </summary>
+    /// <param name="page"></param>
+    /// <param name="size"></param>
+    /// <param name="search"></param>
     /// <remarks>
     /// Returns a complete list of all active cinemas in the system.  
     /// Soft-deleted cinemas are automatically excluded.  
@@ -31,11 +34,35 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="200">Successfully retrieved the list of cinemas.</response>
     [AllowAnonymous]
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<CinemaResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(typeof(PagedResponse<CinemaResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] int page = 0, [FromQuery] int size = 10, [FromQuery] string? search = null)
     {
-        return Ok(await cinemaService.GetAllCinemasAsync());
+        return Ok(await cinemaService.GetAllCinemasAsync(page, size, search));
     }
+
+    /// <summary>
+    ///     Retrieves all physical cinema locations.
+    /// </summary>
+    /// <param name="page"></param>
+    /// <param name="size"></param>
+    /// <param name="search"></param>
+    /// <remarks>
+    ///     Returns a complete list of all active cinemas in the system.
+    ///     Soft-deleted cinemas are automatically excluded.
+    ///     This endpoint is restricted to users with roles:
+    ///     - `ROLE_ORGANIZER`
+    /// </remarks>
+    /// <returns>A list of cinemas currently registered in the system.</returns>
+    /// <response code="200">Successfully retrieved the list of cinemas.</response>
+    [Authorize(Roles = "ORGANIZER")]
+    [HttpGet("my")]
+    [ProducesResponseType(typeof(PagedResponse<CinemaResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAllByOrganizer([FromQuery] int page = 0, [FromQuery] int size = 10, [FromQuery] string? search = null)
+    {
+        var organizerId = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
+        return Ok(await cinemaService.GetAllCinemasByOrganizerAsync(organizerId, page, size, search));
+    }
+
 
     /// <summary>
     /// Retrieves a specific cinema by its unique identifier.
@@ -63,8 +90,8 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_ORGANIZER`
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `ORGANIZER`
+    /// - `SUPER_ADMIN`
     /// 
     /// Creates a new physical cinema record.  
     /// The system automatically generates a sequential UUID v7 and associates the cinema with the creating organizer.
@@ -75,7 +102,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="400">The request payload failed validation (e.g., missing name or location).</response>
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpPost]
     [ProducesResponseType(typeof(CinemaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -98,7 +125,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `SUPER_ADMIN`
     /// 
     /// Allows updating the approval status of a cinema (e.g., Approved, Pending, Rejected).
     /// </remarks>
@@ -108,7 +135,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">No cinema exists with the provided ID.</response>
-    [Authorize(Roles = "ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "SUPER_ADMIN")]
     [HttpPatch("{id:guid}/status")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -125,8 +152,8 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_ORGANIZER`
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `ORGANIZER`
+    /// - `SUPER_ADMIN`
     /// 
     /// Performs a full replacement (PUT) of the cinema's data.  
     /// All required fields must be provided in the request body.  
@@ -138,7 +165,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">No cinema exists with the provided ID.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -148,7 +175,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCinemaRequest request)
     {
         var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
-        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+        var isAdmin = User.IsInRole("SUPER_ADMIN");
 
         await cinemaService.UpdateCinemaAsync(id, request, currentUser, isAdmin);
         return NoContent();
@@ -159,8 +186,8 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_ORGANIZER`
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `ORGANIZER`
+    /// - `SUPER_ADMIN`
     /// 
     /// Performs a soft-delete on the cinema.  
     /// The record remains in the database for historical auditing but is hidden from standard API queries.  
@@ -170,7 +197,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">No cinema exists with the provided ID.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -179,7 +206,7 @@ public class CinemasController(ICinemaService cinemaService) : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
-        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+        var isAdmin = User.IsInRole("SUPER_ADMIN");
 
         await cinemaService.DeleteCinemaAsync(id, currentUser, isAdmin);
         return NoContent();

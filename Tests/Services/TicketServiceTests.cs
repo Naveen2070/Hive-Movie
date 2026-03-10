@@ -95,7 +95,7 @@ public class TicketServiceTests
         var mockIdentityClient = new Mock<IIdentityClient>();
         mockIdentityClient
             .Setup(c => c.GetUserByIdAsync(It.IsAny<long>()))
-            .ReturnsAsync(new UserSummaryDto(12345, "test@hive.com", "Test", "User"));
+            .ReturnsAsync(new UserSummaryDto(12345, "Test", "test@hive.com"));
 
         var mockLogger = new Mock<ILogger<TicketService>>();
 
@@ -247,7 +247,8 @@ public class TicketServiceTests
         await dbContext.SaveChangesAsync();
 
         // Populate the cache to test that confirmation destroys the cache
-        cache.Set($"SeatMap_{showtime.Id}", new ShowtimeSeatMapResponse("M", "C", "A", 10, 10, []));
+        cache.Set($"SeatMap_{showtime.Id}", new ShowtimeSeatMapResponse("M", "C", "A", 10, 10, 15.00m,
+            [], []));
 
         // Act
         await service.ConfirmTicketPaymentAsync("HIVE-PAY");

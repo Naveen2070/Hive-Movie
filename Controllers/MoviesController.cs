@@ -34,7 +34,7 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// <response code="200">Successfully retrieved the movie catalog.</response>
     [AllowAnonymous]
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<MovieResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<MovieResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var movies = await movieService.GetAllMoviesAsync();
@@ -81,7 +81,7 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// <response code="400">The request payload failed validation.</response>
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpPost]
     [ProducesResponseType(typeof(MovieResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -101,8 +101,8 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_ORGANIZER`
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `ORGANIZER`
+    /// - `SUPER_ADMIN`
     /// 
     /// Performs a full replacement (HTTP PUT) of the movie's data.
     /// All properties must be provided in the request body.
@@ -114,7 +114,7 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">No movie exists with the provided ID.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -132,8 +132,8 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_ORGANIZER`
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `ORGANIZER`
+    /// - `SUPER_ADMIN`
     /// 
     /// Performs a soft-delete operation.  
     /// The record remains stored for historical auditing but is excluded
@@ -144,7 +144,7 @@ public class MoviesController(IMovieService movieService) : ControllerBase
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">No movie exists with the provided ID.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]

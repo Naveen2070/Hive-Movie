@@ -95,7 +95,7 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">The specified parent CinemaId does not exist.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpPost]
     [ProducesResponseType(typeof(AuditoriumResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -105,7 +105,7 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     public async Task<IActionResult> Create([FromBody] CreateAuditoriumRequest request)
     {
         var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
-        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+        var isAdmin = User.IsInRole("SUPER_ADMIN");
 
         var auditorium = await auditoriumService.CreateAuditoriumAsync(request, currentUser, isAdmin);
 
@@ -120,8 +120,8 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_ORGANIZER`
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `ORGANIZER`
+    /// - `SUPER_ADMIN`
     /// 
     /// Performs a full replacement (PUT) of the auditorium entity, including the nested
     /// layout configuration. All seat coordinates are re-validated against the updated dimensions.
@@ -133,7 +133,7 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">No auditorium exists with the provided ID.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -143,7 +143,7 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAuditoriumRequest request)
     {
         var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
-        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+        var isAdmin = User.IsInRole("SUPER_ADMIN");
 
         await auditoriumService.UpdateAuditoriumAsync(id, request, currentUser, isAdmin);
         return NoContent();
@@ -154,8 +154,8 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_ORGANIZER`
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `ORGANIZER`
+    /// - `SUPER_ADMIN`
     /// 
     /// The record remains stored for auditing and historical integrity but is excluded
     /// from standard query results.
@@ -165,7 +165,7 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">No auditorium exists with the provided ID.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -174,7 +174,7 @@ public class AuditoriumsController(IAuditoriumService auditoriumService) : Contr
     public async Task<IActionResult> Delete(Guid id)
     {
         var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
-        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+        var isAdmin = User.IsInRole("SUPER_ADMIN");
 
         await auditoriumService.DeleteAuditoriumAsync(id, currentUser, isAdmin);
         return NoContent();

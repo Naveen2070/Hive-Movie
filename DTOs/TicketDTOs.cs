@@ -35,6 +35,9 @@ public record TicketCheckoutResponse(
 ///     Represents detailed information about a reserved ticket, including showtime and cinema info.
 /// </summary>
 /// <param name="TicketId">The unique identifier (UUID v7) of the reserved ticket. <example>d290f1ee-6c54-4b01-90e6-d701748f0851</example></param>
+/// <param name="MovieId">The unique identifier (UUID v7) of the movie. <example>8bc45f12-9831-4562-c1fc-1a983f44efc1</example></param>
+/// <param name="CinemaId">The unique identifier (UUID v7) of the cinema. <example>7ac45f12-9831-4562-c1fc-1a983f44efc1</example></param>
+/// <param name="ShowtimeId">The unique identifier (UUID v7) of the showtime. <example>6bc45f12-9831-4562-c1fc-1a983f44efc1</example></param>
 /// <param name="BookingReference">A human-readable or system-generated reference code for the booking. <example>HIVE-A1B2C3</example></param>
 /// <param name="MovieTitle">The title of the movie for which the ticket was reserved. <example>The Matrix</example></param>
 /// <param name="CinemaName">The name of the cinema where the showtime takes place. <example>Hive Multiplex Downtown</example></param>
@@ -46,6 +49,9 @@ public record TicketCheckoutResponse(
 /// <param name="CreatedAtUtc">The UTC timestamp when the ticket reservation was created. <example>2026-05-10T14:23:05Z</example></param>
 public record MyTicketResponse(
     Guid TicketId,
+    Guid MovieId,
+    Guid CinemaId,
+    Guid ShowtimeId,
     string BookingReference,
     string MovieTitle,
     string CinemaName,
@@ -55,6 +61,28 @@ public record MyTicketResponse(
     decimal TotalAmount,
     string Status,
     DateTime CreatedAtUtc
+);
+
+/// <summary>
+///     The payload required to check in a ticket at the door.
+/// </summary>
+/// <param name="BookingReference">The unique booking reference code.
+///     <example>HIVE-A1B2C3</example>
+/// </param>
+public record CheckInRequest(
+    [Required] string BookingReference
+);
+
+/// <summary>
+///     Represents the result of a ticket check-in attempt.
+/// </summary>
+/// <param name="Status">The result of the scan (CHECKED_IN, ALREADY_CHECKED_IN, EXPIRED, INVALID_STATUS, NOT_FOUND).</param>
+/// <param name="AttendeeName">The name or email of the ticket holder.</param>
+/// <param name="TicketTierName">The tier or type of the ticket.</param>
+public record CheckInResponse(
+    string Status,
+    string AttendeeName,
+    string TicketTierName
 );
 
 /// <summary>

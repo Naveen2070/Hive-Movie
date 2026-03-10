@@ -108,7 +108,8 @@ public class ShowtimeServiceTests
         var showtimeId = Guid.NewGuid();
 
         // Inject a FAKE response directly into the cache (DB is completely empty!)
-        var fakeResponse = new ShowtimeSeatMapResponse("Cached Movie", "Cached Cinema", "A1", 10, 10, []);
+        var fakeResponse = new ShowtimeSeatMapResponse("Cached Movie", "Cached Cinema", "A1", 10, 10, 15.00m,
+            [], []);
         cache.Set($"SeatMap_{showtimeId}", fakeResponse);
 
         // Act
@@ -191,5 +192,80 @@ public class ShowtimeServiceTests
 
         // Assert
         Assert.Empty(await dbContext.Showtimes.ToListAsync());
+    }
+
+    // --- 3. TESTS FOR: GetShowtimesByMovieIdAsync (Catalog Browsing) ---
+
+    [Fact]
+    public async Task GetShowtimesByMovieId_ShouldReturnOnlyFutureShowtimes_OrderedChronologically()
+    {
+        // Arrange
+        var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
+        var service = new ShowtimeService(dbContext, cache);
+        var data = await SeedDataAsync(dbContext, "Org-1");
+
+        // Add a past showtime (should be filtered out)
+        dbContext.Showtimes.Add(new Showtime
+        {
+            Id = Guid.NewGuid(),
+            MovieId = data.Movie.Id,
+            AuditoriumId = data.Auditorium.Id,
+            StartTimeUtc = DateTime.UtcNow.AddDays(-1),
+            BasePrice = 10m,
+            SeatAvailabilityState = new byte[10]
+        });
+
+        // Add a showtime further in the future to test sorting
+        dbContext.Showtimes.Add(new Showtime
+        {
+            Id = Guid.NewGuid(),
+            MovieId = data.Movie.Id,
+            AuditoriumId = data.Auditorium.Id,
+            StartTimeUtc = DateTime.UtcNow.AddDays(5),
+            BasePrice = 10m,
+            SeatAvailabilityState = new byte[10]
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        // Act
+        var result = (await service.GetShowtimesByMovieIdAsync(data.Movie.Id)).Content.ToList();
+
+        // Assert
+        Assert.Equal(2, result.Count); // 1 from seed (future), 1 new future, 1 past (ignored)
+        Assert.True(result[0].StartTimeUtc < result[1].StartTimeUtc); // Ensures chronological ordering
+    }
+
+    [Fact]
+    public async Task GetShowtimesByMovieId_ShouldExcludeSoftDeletedShowtimes()
+    {
+        // Arrange
+        var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
+        var service = new ShowtimeService(dbContext, cache);
+        var data = await SeedDataAsync(dbContext, "Org-1");
+
+        // Mark the seeded future showtime as soft-deleted
+        data.Showtime.IsDeleted = true;
+        await dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetShowtimesByMovieIdAsync(data.Movie.Id);
+
+        // Assert
+        Assert.Empty(result.Content);
+    }
+
+    [Fact]
+    public async Task GetShowtimesByMovieId_NonExistentMovie_ReturnsEmptyList()
+    {
+        // Arrange
+        var (dbContext, cache) = GetTestInfrastructure(Guid.NewGuid().ToString());
+        var service = new ShowtimeService(dbContext, cache);
+
+        // Act
+        var result = await service.GetShowtimesByMovieIdAsync(Guid.NewGuid());
+
+        // Assert
+        Assert.Empty(result.Content);
     }
 }

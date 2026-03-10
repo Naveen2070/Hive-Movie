@@ -95,7 +95,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
         var cinema = await SeedCinemaAsync(dbContext, organizerId);
 
         // Ensure the controller thinks "Org-123" is logged in with the Organizer role
-        var controller = CreateController(dbContext, organizerId, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, organizerId, "ORGANIZER");
 
         var layoutDto = new AuditoriumLayoutDto([], [], []);
         var request = new CreateAuditoriumRequest(cinema.Id, "IMAX Screen", 10, 10, layoutDto);
@@ -120,7 +120,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "Org-123", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org-123", "ORGANIZER");
 
         // Invalid Data: MaxRows is 0!
         var layoutDto = new AuditoriumLayoutDto([], [], []);
@@ -152,7 +152,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
         await dbContext.SaveChangesAsync();
 
         // GetById has [AllowAnonymous], so the user roles don't matter here
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
 
         // Act
         var result = await controller.GetById(auditoriumId);
@@ -184,7 +184,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
         });
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, organizerId, "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, organizerId, "ORGANIZER");
 
         // Act
         var result = await controller.Delete(auditoriumId);
@@ -219,7 +219,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
         await dbContext.SaveChangesAsync();
 
         // The hacker is logged in as an Organizer, but they DO NOT own this cinema
-        var controller = CreateController(dbContext, "Hacker-Org", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Hacker-Org", "ORGANIZER");
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Delete(auditoriumId));
@@ -247,7 +247,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
         await dbContext.SaveChangesAsync();
 
         // The user is an Admin, so they should bypass the ownership check
-        var controller = CreateController(dbContext, "SuperAdminUser", "ROLE_SUPER_ADMIN");
+        var controller = CreateController(dbContext, "SuperAdminUser", "SUPER_ADMIN");
         var request = new UpdateAuditoriumRequest("Admin Updated Name", 15, 15, new AuditoriumLayoutDto([], [], []));
 
         // Act
@@ -265,7 +265,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
         var fakeId = Guid.NewGuid();
 
         // Act & Assert
@@ -279,7 +279,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "Org-1", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org-1", "ORGANIZER");
 
         // CinemaId does not exist in the DB
         var request = new CreateAuditoriumRequest(Guid.NewGuid(), "Screen", 10, 10, new AuditoriumLayoutDto([], [], []));
@@ -315,7 +315,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
         });
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
 
         // Act
         var result = await controller.GetAll();
@@ -354,7 +354,7 @@ public class AuditoriumsControllerTests(SqlServerFixture fixture) : IAsyncLifeti
         });
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
 
         // Act
         var result = await controller.GetByCinemaId(targetCinema.Id);

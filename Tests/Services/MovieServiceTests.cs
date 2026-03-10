@@ -36,7 +36,7 @@ public class MovieServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Empty(result); // Validates it doesn't return null or crash
+        Assert.Empty(result.Content); // Validates it doesn't return null or crash
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class MovieServiceTests
         await dbContext.SaveChangesAsync();
 
         // Act
-        var result = (await service.GetAllMoviesAsync()).ToList();
+        var result = (await service.GetAllMoviesAsync()).Content.ToList();
 
         // Assert
         Assert.Equal(3, result.Count);
