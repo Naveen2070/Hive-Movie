@@ -120,7 +120,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         dbContext.Showtimes.Add(showtime);
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
 
         // Act
         var result = await controller.GetSeatMap(showtime.Id);
@@ -140,7 +140,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         // Arrange
         await using var dbContext = CreateDbContext();
         var data = await SeedHierarchyAsync(dbContext, "Org-Owner");
-        var controller = CreateController(dbContext, "Org-Owner", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org-Owner", "ORGANIZER");
 
         var request = new CreateShowtimeRequest(data.movie.Id, data.auditorium.Id, DateTime.UtcNow.AddDays(1), 15.00m);
 
@@ -160,7 +160,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         await using var dbContext = CreateDbContext();
         // Create a cinema that is NOT approved yet
         var data = await SeedHierarchyAsync(dbContext, "Org-Owner", CinemaApprovalStatus.Pending);
-        var controller = CreateController(dbContext, "Org-Owner", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org-Owner", "ORGANIZER");
 
         var request = new CreateShowtimeRequest(data.movie.Id, data.auditorium.Id, DateTime.UtcNow, 15.00m);
 
@@ -177,7 +177,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         var data = await SeedHierarchyAsync(dbContext, "Real-Owner");
 
         // Hacker is logged in as an Organizer, but DOES NOT own this cinema
-        var controller = CreateController(dbContext, "Hacker-Org", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Hacker-Org", "ORGANIZER");
         var request = new CreateShowtimeRequest(data.movie.Id, data.auditorium.Id, DateTime.UtcNow, 15.00m);
 
         // Act & Assert
@@ -204,7 +204,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         });
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, "Org-Owner", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org-Owner", "ORGANIZER");
         var request = new UpdateShowtimeRequest(DateTime.UtcNow.AddHours(2), 20.00m);
 
         // Act
@@ -235,7 +235,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         });
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, "Hacker-Org", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Hacker-Org", "ORGANIZER");
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Delete(showtimeId));
@@ -262,7 +262,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         await dbContext.SaveChangesAsync();
 
         // Admin does not own the cinema, but role overrides it
-        var controller = CreateController(dbContext, "Admin", "ROLE_SUPER_ADMIN");
+        var controller = CreateController(dbContext, "Admin", "SUPER_ADMIN");
 
         // Act
         var result = await controller.Delete(showtimeId);
@@ -312,16 +312,19 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
                 SeatAvailabilityState = new byte[10]
             }
         );
+
         await dbContext.SaveChangesAsync();
 
-        var controller = CreateController(dbContext, null, "ROLE_USER");
+        var controller = CreateController(dbContext, null, "USER");
 
         // Act
         var result = await controller.GetByMovieId(data.movie.Id);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnedShowtimes = Assert.IsAssignableFrom<IEnumerable<ShowtimeResponse>>(okResult.Value).ToList();
+        var response = Assert.IsType<PagedResponse<ShowtimeResponse>>(okResult.Value);
+
+        var returnedShowtimes = response.Content.ToList();
 
         Assert.Equal(2, returnedShowtimes.Count); // Past showtime ignored
         Assert.True(returnedShowtimes[0].StartTimeUtc < returnedShowtimes[1].StartTimeUtc); // Sorted chronologically
@@ -343,25 +346,26 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
             BasePrice = 10,
             SeatAvailabilityState = new byte[10]
         };
+
         dbContext.Showtimes.Add(showtime);
         await dbContext.SaveChangesAsync();
 
-        // Soft delete it via the interceptor
+        // Soft delete via interceptor
         dbContext.Showtimes.Remove(showtime);
         await dbContext.SaveChangesAsync();
 
-        // Clear tracking to force a real DB hit
         dbContext.ChangeTracker.Clear();
 
-        var controller = CreateController(dbContext, null, "ROLE_USER");
+        var controller = CreateController(dbContext, null, "USER");
 
         // Act
         var result = await controller.GetByMovieId(data.movie.Id);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnedShowtimes = Assert.IsAssignableFrom<IEnumerable<ShowtimeResponse>>(okResult.Value);
-        Assert.Empty(returnedShowtimes);
+        var response = Assert.IsType<PagedResponse<ShowtimeResponse>>(okResult.Value);
+
+        Assert.Empty(response.Content);
     }
 
     [Fact]
@@ -369,15 +373,16 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, null, "ROLE_USER");
+        var controller = CreateController(dbContext, null, "USER");
 
         // Act
         var result = await controller.GetByMovieId(Guid.NewGuid());
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnedShowtimes = Assert.IsAssignableFrom<IEnumerable<ShowtimeResponse>>(okResult.Value);
-        Assert.Empty(returnedShowtimes); // Doesn't crash, just returns empty
+        var response = Assert.IsType<PagedResponse<ShowtimeResponse>>(okResult.Value);
+
+        Assert.Empty(response.Content);
     }
 
     // --- 4. NOT FOUND & BAD INPUT EDGE CASES ---
@@ -387,7 +392,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "Guest", "ROLE_USER");
+        var controller = CreateController(dbContext, "Guest", "USER");
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => controller.GetSeatMap(Guid.NewGuid()));
@@ -401,7 +406,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         await using var dbContext = CreateDbContext();
         // Seed the cinema and auditorium, but we'll pass a fake Movie ID
         var data = await SeedHierarchyAsync(dbContext, "Org-Owner");
-        var controller = CreateController(dbContext, "Org-Owner", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org-Owner", "ORGANIZER");
 
         var fakeMovieId = Guid.NewGuid();
         var request = new CreateShowtimeRequest(fakeMovieId, data.auditorium.Id, DateTime.UtcNow.AddDays(1), 15.00m);
@@ -416,7 +421,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         // Arrange
         await using var dbContext = CreateDbContext();
-        var controller = CreateController(dbContext, "Org-Owner", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org-Owner", "ORGANIZER");
         var request = new UpdateShowtimeRequest(DateTime.UtcNow.AddHours(2), 20.00m);
 
         // Act & Assert
@@ -452,7 +457,7 @@ public class ShowtimesControllerTests(SqlServerFixture fixture) : IAsyncLifetime
         // Clear the cache so the controller is forced to hit the SQL database
         dbContext.ChangeTracker.Clear();
 
-        var controller = CreateController(dbContext, "Org-Owner", "ROLE_ORGANIZER");
+        var controller = CreateController(dbContext, "Org-Owner", "ORGANIZER");
 
         // Act & Assert
         // The record is now truly soft-deleted in the DB. The Global Query filter will hide it!

@@ -89,7 +89,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// <response code="400">The request payload is invalid.</response>
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpPost]
     [ProducesResponseType(typeof(ShowtimeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -98,7 +98,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     public async Task<IActionResult> Create([FromBody] CreateShowtimeRequest request)
     {
         var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
-        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+        var isAdmin = User.IsInRole("SUPER_ADMIN");
 
         var showtime = await showtimeService.CreateShowtimeAsync(request, currentUser, isAdmin);
         return Created(string.Empty, showtime);
@@ -109,8 +109,8 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_ORGANIZER`
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `ORGANIZER`
+    /// - `SUPER_ADMIN`
     /// 
     /// Organizers may only update showtimes belonging to their own cinemas.
     /// </remarks>
@@ -121,7 +121,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">The showtime does not exist.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -131,7 +131,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateShowtimeRequest request)
     {
         var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
-        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+        var isAdmin = User.IsInRole("SUPER_ADMIN");
 
         await showtimeService.UpdateShowtimeAsync(id, request, currentUser, isAdmin);
         return NoContent();
@@ -142,8 +142,8 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// </summary>
     /// <remarks>
     /// Restricted to users with roles:
-    /// - `ROLE_ORGANIZER`
-    /// - `ROLE_SUPER_ADMIN`
+    /// - `ORGANIZER`
+    /// - `SUPER_ADMIN`
     /// 
     /// Organizers may only delete showtimes belonging to their own cinemas.
     /// </remarks>
@@ -152,7 +152,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user does not have sufficient permissions.</response>
     /// <response code="404">The showtime does not exist.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -161,7 +161,7 @@ public class ShowtimesController(IShowtimeService showtimeService) : ControllerB
     public async Task<IActionResult> Delete(Guid id)
     {
         var currentUser = User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException();
-        var isAdmin = User.IsInRole("ROLE_SUPER_ADMIN");
+        var isAdmin = User.IsInRole("SUPER_ADMIN");
 
         await showtimeService.DeleteShowtimeAsync(id, currentUser, isAdmin);
         return NoContent();

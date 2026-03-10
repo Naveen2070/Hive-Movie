@@ -35,6 +35,9 @@ public record TicketCheckoutResponse(
 ///     Represents detailed information about a reserved ticket, including showtime and cinema info.
 /// </summary>
 /// <param name="TicketId">The unique identifier (UUID v7) of the reserved ticket. <example>d290f1ee-6c54-4b01-90e6-d701748f0851</example></param>
+/// <param name="MovieId">The unique identifier (UUID v7) of the movie. <example>8bc45f12-9831-4562-c1fc-1a983f44efc1</example></param>
+/// <param name="CinemaId">The unique identifier (UUID v7) of the cinema. <example>7ac45f12-9831-4562-c1fc-1a983f44efc1</example></param>
+/// <param name="ShowtimeId">The unique identifier (UUID v7) of the showtime. <example>6bc45f12-9831-4562-c1fc-1a983f44efc1</example></param>
 /// <param name="BookingReference">A human-readable or system-generated reference code for the booking. <example>HIVE-A1B2C3</example></param>
 /// <param name="MovieTitle">The title of the movie for which the ticket was reserved. <example>The Matrix</example></param>
 /// <param name="CinemaName">The name of the cinema where the showtime takes place. <example>Hive Multiplex Downtown</example></param>

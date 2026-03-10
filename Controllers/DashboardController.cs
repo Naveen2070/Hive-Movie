@@ -22,7 +22,7 @@ public class DashboardController(IDashboardService dashboardService) : Controlle
     /// <response code="200">Returns the populated DashboardStatsDTO.</response>
     /// <response code="401">The user is not authenticated.</response>
     /// <response code="403">The user is not an organizer.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN")]
     [HttpGet]
     [ProducesResponseType(typeof(DashboardStatsResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStats()

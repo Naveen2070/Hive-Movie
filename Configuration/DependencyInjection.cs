@@ -40,6 +40,7 @@ public static class DependencyInjection
 
         // Workers
         services.AddHostedService<TicketCleanupWorker>();
+        services.AddHostedService<NotificationOutboxWorker>();
 
         // Messaging and inter service communication
         services.AddSingleton<INotificationProducer, NotificationProducer>();

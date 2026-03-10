@@ -122,7 +122,7 @@ public class TicketsController(ITicketService ticketService) : ControllerBase
     /// </remarks>
     /// <param name="request">Contains the booking reference from the scanned QR code.</param>
     /// <response code="200">Returns the check-in evaluation result.</response>
-    [Authorize(Roles = "ROLE_ORGANIZER,ROLE_SUPER_ADMIN,ROLE_STAFF")]
+    [Authorize(Roles = "ORGANIZER,SUPER_ADMIN,STAFF")]
     [HttpPost("check-in")]
     [ProducesResponseType(typeof(CheckInResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> CheckInTicket([FromBody] CheckInRequest request)

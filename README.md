@@ -1,86 +1,90 @@
-# Hive-Movie - Catalog & Ticketing Engine 🎬
+<p align="center">
+<img src="https://raw.githubusercontent.com/Naveen2070/The-Hive-Project/main/assets/hive-movie-logo.png" alt="Hive Movie Logo" width="150"/>
+</p>
 
-> A high-performance core backend service responsible for managing the movie catalog, physical cinema infrastructure,
-> and a highly concurrent seat reservation engine built with **.NET 10** and **C# 14**.
+<h1 align="center">Hive-Movie (Catalog & Ticketing Service)</h1>
 
-Hive-Movie acts as the transactional heart of the cinema ecosystem. It handles complex physical seating layouts, registers new movies and showtimes, and utilizes custom byte-level engine logic combined with Optimistic Concurrency Control to guarantee that race conditions and double-bookings are impossible during high-traffic ticket sales.
+<p align="center"><em>The high-performance core engine for movie management, cinema orchestration, and atomic seat reservations within the EventHive ecosystem.</em></p>
+
+<p align="center">
+<img src="https://img.shields.io/badge/Language-C%23-239120?logo=csharp&logoColor=white" alt="C#"/>
+<img src="https://img.shields.io/badge/Framework-.NET_10-512BD4?logo=dotnet&logoColor=white" alt=".NET 10"/>
+<img src="https://img.shields.io/badge/Database-SQL_Server-CC2927?logo=microsoftsqlserver&logoColor=white" alt="SQL Server"/>
+<img src="https://img.shields.io/badge/Messaging-RabbitMQ-FF6600?logo=rabbitmq&logoColor=white" alt="RabbitMQ"/>
+<img src="https://img.shields.io/badge/Security-JWT_+_HMAC-red" alt="Security"/>
+<img src="https://img.shields.io/badge/ID_Gen-UUID_v7-blue" alt="UUID v7"/>
+<img src="https://img.shields.io/badge/Containerization-Docker-2496ED?logo=docker&logoColor=white" alt="Docker"/>
+<img src="https://img.shields.io/github/license/Naveen2070/The-Hive-Project" alt="License"/>
+</p>
+
+---
+
+> **Hive-Movie** is the ticketing powerhouse of the Hive platform. Built with **C#** and **.NET 10**, it handles massive
+> concurrent seat bookings using a specialized zero-allocation engine, manages cinema and auditorium lifecycles, and
+> maintains a rich movie catalog with multi-tenant ownership.
 
 ---
 
 ### 🔗 Associated Repositories
 
-- 👉 **[Hive-Identity (Auth & Users)](https://github.com/Naveen2070/Hive-Identity)**
-- 👉 **[EventHive UI (Frontend)](https://github.com/Naveen2070/EventHive-UI)**
-- 👉 **[Hive-Event (Core API)](https://github.com/Naveen2070/EventHive)**
+* 👉 **[The-Hive-Project (Main Hub)](https://github.com/Naveen2070/The-Hive-Project)**
+* 👉 **[Hive-Identity (Auth Service)](https://github.com/Naveen2070/The-Hive-Project/tree/main/services/identity-service)
+  **
+* 👉 **[Hive-Forager-UI (Frontend)](https://github.com/Naveen2070/Hive-Forager-UI)**
 
 ---
 
 ## 🚀 Key Features
 
-- **🎟️ High-Concurrency Ticketing:** Utilizes database-level Optimistic Concurrency Control (`RowVersion`) and a custom
-  `SeatMapEngine` to ensure atomic reservations and prevent double-booking.
-- **📭 Transactional Outbox Pattern:** Guarantees 100% reliable email notification delivery. Events are atomically saved
-  to SQL Server in the same transaction as ticket creations, and a highly concurrent background worker (`READPAST`/
-  `UPDLOCK` CTEs) safely dispatches them to RabbitMQ.
-- **📊 Organizer Analytics Dashboard:** Aggregates real-time 30-day revenue trends, ticket sales metrics, and recent transactions, batch-fetching attendee profiles securely via the Identity microservice.
-- **📱 Door Scanner & Check-In:** Specialized endpoints for venue staff to scan and validate tickets, mapping coordinates to dynamic VIP pricing tiers and strictly enforcing movie runtime expirations.
-- **⏳ Automated Cleanup Workers:** Dual-job background services that not only release unpaid abandoned carts, but also automatically mark un-scanned tickets as "Expired" the moment the movie finishes.
-- **📦 Polyglot Pagination Wrapper:** All catalog endpoints utilize a standardized pagination envelope that perfectly mirrors Spring Data JPA, ensuring unified frontend compatibility across the microservice ecosystem.
-- **🔐 Zero-Trust S2S Security:** Communicates internally with the Spring Boot Identity Service using mathematically
-  secure **HMAC-SHA256** signatures, implemented via `DelegatingHandler` and **Refit** typed clients.
-- **⚡ Idempotent Webhooks:** Payment confirmation endpoints (e.g., for Stripe/Razorpay) are immune to duplicate network
-  requests, safely rejecting expired tickets while securely locking paid seats.
-- **💺 Complex Auditorium Layouts:** Seamlessly stores custom seating topologies (disabled seats, wheelchair spots,
-  pricing tiers) using EF Core JSON column mapping and dynamic cross-property validation.
-- **🧯 Standardized Error Handling:** Fully compliant with **RFC 7807**. A centralized `IExceptionHandler` catches all
-  domain and concurrency errors, returning predictable, beautifully formatted `ProblemDetails` JSON payloads.
-- **📚 Rich OpenAPI Documentation:** Utilizes .NET Document Transformers to automatically generate an industrial-grade **Scalar UI** portal, fully annotated with expected responses, default payload examples, and JWT Bearer integration.
+* **⚡ High-Performance Seat Engine:** Implements a custom, zero-allocation `SeatMapEngine` utilizing raw byte arrays for
+  O(1) status checks and atomic in-memory reservations, ensuring lightning-fast booking even for massive venues.
+* **🛡️ Optimistic Concurrency:** Protects against overbooking using SQL Server `RowVersion` tokens, allowing for
+  lock-free read operations while guaranteeing data integrity during high-traffic sales.
+* **🏢 Multi-Tenant Cinema Management:** Allows organizers to manage their own cinema multiplexes, auditoriums, and
+  showtimes with strict ownership validation and administrative approval workflows.
+* **🆔 Modern ID Generation:** Uses **UUID v7 (Sequential UUIDs)** for all primary keys, combining the uniqueness of
+  GUIDs with the database performance of sequential integers.
+* **🏗️ Outbox Pattern:** Guarantees reliable asynchronous communication. Business events (like cinema approvals or
+  booking confirmations) are persisted to an `OutboxMessages` table and dispatched to **RabbitMQ** by a dedicated
+  background worker.
+* **🧹 Automated Cleanup:** Features a `TicketCleanupWorker` that automatically releases reserved seats if payments are
+  not confirmed within the expiration window (15 minutes).
+* **📊 Organizer Dashboard:** Provides real-time statistical aggregation including revenue trends, sales growth, and
+  recent transaction history for cinema owners.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Language:** C# 14
-- **Framework:** .NET 10 (ASP.NET Core Web API)
-- **Database:** SQL Server (EF Core with JSON mapping)
-- **Message Broker:** RabbitMQ
-- **HTTP Client:** Refit (Declarative REST)
-- **Validation:** FluentValidation & Data Annotations
-- **API Documentation:** OpenAPI (v3) / Scalar UI
-- **Testing:** xUnit, Moq, & **Testcontainers** (Isolated Docker SQL Server instances)
+* **Language:** C# 13 / .NET 10
+* **Web Framework:** ASP.NET Core Web API
+* **ORM:** Entity Framework Core (EF Core) 10
+* **Database:** Microsoft SQL Server
+* **Security:** JWT (Multi-tenant Domain Roles), HMAC-SHA256 (S2S)
+* **Messaging:** RabbitMQ (AMQP)
+* **Validation:** FluentValidation
+* **Internal Communication:** Refit (Type-safe REST client)
+* **API Documentation:** OpenAPI / Scalar UI
 
 ---
 
 ## 🏗️ Architecture
 
-The project follows a clean, decoupled **Domain-Service** architecture. Business logic is strictly isolated from HTTP
-routing, and robust background infrastructure handles asynchronous tasks:
+The project follows a modular **Clean Architecture** inspired structure with a focus on domain-driven logic:
 
 ```text
-Hive_Movie
-├── Configuration     # Dependency Injection & OpenAPI Document Transformers
-├── Controllers       # RESTful API routing (/api/{resource})
-├── Data              # EF Core DbContext, Seeders, and Migrations
-├── DTOs              # Immutable Data Transfer Objects (Records)
-├── Engine            # High-performance business logic (SeatMapEngine)
-├── Infrastructure    # External communication (RabbitMQ, Security, Refit Clients)
-├── Middleware        # Pipeline interceptors (GlobalExceptionHandler)
-├── Models            # Rich Domain Entities (Movie, Ticket, OutboxMessage, etc.)
-├── Services          # Decoupled business logic and CRUD abstractions
-├── Validators        # FluentValidation rules for complex cross-property checks
-└── Workers           # IHostedServices (Outbox Dispatcher, Ticket Cleanup Jobs)
+Hive-Movie/
+├── Configuration/      # DI Registrations, JWT & OpenApi Config
+├── Controllers/        # REST Endpoints (Cinemas, Movies, Tickets, etc.)
+├── Data/               # DBContext, Migrations, Initializers
+├── DTOs/               # Data Transfer Objects & Validation models
+├── Engine/             # The high-performance SeatMapEngine
+├── Infrastructure/     # Messaging, S2S Clients, Security Handlers
+├── Middleware/         # Global Exception Handling
+├── Models/             # Domain Entities (EF Core)
+├── Services/           # Business Logic Layer
+└── Workers/            # Background Tasks (Outbox, Cleanup)
 ```
-
----
-
-## 🔒 Security Architecture: JWT Integration
-
-Hive-Movie operates as a trusting resource server within the ecosystem. It does not issue tokens. Instead, it relies on the asymmetric/symmetric JWTs generated by the Kotlin **Hive-Identity** service.
-
-- **Read Operations (`GET`):** Public for catalog browsing.
-- **Ticketing Operations (`POST` `/reserve`):** Require a valid JWT Bearer token identifying the user.
-- **Mutating Operations (`POST`, `PUT`, `DELETE`):** Require a valid JWT Bearer token containing the `ROLE_ORGANIZER` or
-  `ROLE_SUPER_ADMIN` claims.
 
 ---
 
@@ -88,104 +92,87 @@ Hive-Movie operates as a trusting resource server within the ecosystem. It does 
 
 ### Prerequisites
 
-- **.NET 10 SDK**
-- **Docker & Docker Compose** (For SQL Server and RabbitMQ)
+* **.NET 10 SDK**
+* **Docker & Docker Compose**
+* **SQL Server** (Local or Containerized)
+* **RabbitMQ**
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Naveen2070/Hive-Movie.git
-cd Hive-Movie
+git clone https://github.com/Naveen2070/The-Hive-Project.git
+cd The-Hive-Project/services/movie-service
 ```
 
-### 2. Run the Standalone Environment
+### 2. Configuration (`appsettings.Development.json`)
 
-To test the Movie API in isolation without spinning up the entire Spring Boot ecosystem, use the included standalone
-compose file. This boots up a dedicated SQL Server and RabbitMQ container.
-
-```bash
-docker compose -f docker-compose.standalone.yml up -d
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=YOUR_SERVER;Database=HiveMovieDb;..."
+  },
+  "Jwt": {
+    "Secret": "YOUR_BASE64_SECRET"
+  },
+  "RabbitMQ": {
+    "Host": "localhost"
+  }
+}
 ```
 
-### 3. Run Migrations & Start Application
-
-Use the Entity Framework Core CLI to apply the database schema, then start the application.
+### 3. Database Migration
 
 ```bash
-# Apply schema to SQL Server
 dotnet ef database update
+```
 
-# Run the API
+### 4. Run the Application
+
+```bash
 dotnet run
 ```
-
-### 4. Access the Developer Portal
-
-Navigate to `http://localhost:5001/scalar` (or the port defined in your console) to access the interactive **Scalar UI**. Here you can explore the fully documented endpoints, view payload schemas, and test the API directly from your
-browser.
 
 ---
 
 ## 🔌 API Endpoints
 
-### 📊 Dashboard
+### 🎬 Movies & Catalog (Public)
 
-| Method | Endpoint                | Description                                         | Access            |
-| ------ | ----------------------- | --------------------------------------------------- | ----------------- |
-| `GET`  | `/api/movies/dashboard` | Retrieve aggregated 30-day analytics & recent sales | Admin / Organizer |
+| Method | Endpoint           | Description                            | Access          |
+|:-------|:-------------------|:---------------------------------------|:----------------|
+| `GET`  | `/api/movies`      | Fetch entire movie catalog (Paginated) | Public          |
+| `GET`  | `/api/movies/{id}` | Get detailed movie metadata            | Public          |
+| `POST` | `/api/movies`      | Register a new movie                   | Organizer/Admin |
 
-### 🎬 Movies Catalog (`/api/movies`)
+### 🏢 Cinemas & Auditoriums
 
-| Method   | Endpoint           | Description                                    | Access            |
-| -------- | ------------------ | ---------------------------------------------- | ----------------- |
-| `GET`    | `/api/movies`      | Paginated list of active movies `[?page&size]` | Public            |
-| `GET`    | `/api/movies/{id}` | Get movie details by ID                        | Public            |
-| `POST`   | `/api/movies`      | Register a new movie to the catalog            | Admin / Organizer |
-| `PUT`    | `/api/movies/{id}` | Full update of a movie's details               | Admin / Organizer |
-| `DELETE` | `/api/movies/{id}` | Soft-delete a movie from the catalog           | Admin / Organizer |
+| Method  | Endpoint                   | Description                        | Access      |
+|:--------|:---------------------------|:-----------------------------------|:------------|
+| `GET`   | `/api/cinemas`             | List all approved cinema locations | Public      |
+| `POST`  | `/api/cinemas`             | Register a new multiplex           | Organizer   |
+| `PATCH` | `/api/cinemas/{id}/status` | Approve/Reject a cinema            | Super Admin |
+| `GET`   | `/api/auditoriums`         | List all room layouts              | Public      |
 
-### 🏢 Cinemas Management (`/api/cinemas`)
+### 🎟️ Ticketing & Reservations
 
-| Method   | Endpoint                   | Description                                   | Access            |
-| -------- | -------------------------- | --------------------------------------------- | ----------------- |
-| `GET`    | `/api/cinemas`             | Paginated directory of cinemas `[?page&size]` | Public            |
-| `GET`    | `/api/cinemas/my`          | Paginated directory of user's owned cinemas   | Admin / Organizer |
-| `GET`    | `/api/cinemas/{id}`        | Get a specific cinema by ID                   | Public            |
-| `POST`   | `/api/cinemas`             | Register a new cinema location                | Admin / Organizer |
-| `PATCH`  | `/api/cinemas/{id}/status` | Update cinema approval status                 | **Super Admin**   |
-| `PUT`    | `/api/cinemas/{id}`        | Update cinema details                         | Admin / Organizer |
-| `DELETE` | `/api/cinemas/{id}`        | Soft-delete a cinema location                 | Admin / Organizer |
+| Method | Endpoint                       | Description                         | Access          |
+|:-------|:-------------------------------|:------------------------------------|:----------------|
+| `GET`  | `/api/showtimes/{id}/map`      | Get real-time seat availability map | Public          |
+| `POST` | `/api/tickets/reserve`         | Atomically reserve seats (Pending)  | Auth User       |
+| `GET`  | `/api/tickets/my-bookings`     | View user's booking history         | Auth User       |
+| `POST` | `/api/tickets/payment/success` | Webhook: Confirm payment & seats    | Public          |
+| `POST` | `/api/tickets/check-in`        | Validate ticket at entry (QR Scan)  | Staff/Organizer |
 
-### 💺 Auditoriums & Layouts (`/api/auditoriums`)
+### 📊 Analytics & Management
 
-| Method   | Endpoint                       | Description                                    | Access            |
-| -------- | ------------------------------ | ---------------------------------------------- | ----------------- |
-| `GET`    | `/api/auditoriums`             | Get all auditoriums across all locations       | Public            |
-| `GET`    | `/api/auditoriums/cinema/{id}` | Get all screens for a specific physical cinema | Public            |
-| `GET`    | `/api/auditoriums/{id}`        | Get auditorium details and JSON seating layout | Public            |
-| `POST`   | `/api/auditoriums`             | Create a new room with layout validation       | Admin / Organizer |
-| `PUT`    | `/api/auditoriums/{id}`        | Update room dimensions and seating layout      | Admin / Organizer |
-| `DELETE` | `/api/auditoriums/{id}`        | Soft-delete an auditorium                      | Admin / Organizer |
+| Method | Endpoint                | Description                          | Access    |
+|:-------|:------------------------|:-------------------------------------|:----------|
+| `GET`  | `/api/movies/dashboard` | Organizer financial metrics & trends | Organizer |
 
-### 🕒 Showtimes (`/api/showtimes`)
-
-| Method   | Endpoint                      | Description                                     | Access            |
-| -------- | ----------------------------- | ----------------------------------------------- | ----------------- |
-| `GET`    | `/api/showtimes/movie/{id}`   | Paginated schedules by movie `[?page&fromDate]` | Public            |
-| `GET`    | `/api/showtimes/{id}/seatmap` | Get real-time JSON seat availability grid       | Public            |
-| `POST`   | `/api/showtimes`              | Schedule a new movie showing                    | Admin / Organizer |
-| `PUT`    | `/api/showtimes/{id}`         | Update showtime start time or base price        | Admin / Organizer |
-| `DELETE` | `/api/showtimes/{id}`         | Remove a scheduled showtime                     | Admin / Organizer |
-
-### 🎟️ Checkout, Ticketing & Analytics (`/api/tickets`)
-
-| Method | Endpoint                       | Description                                          | Access            |
-| ------ | ------------------------------ | ---------------------------------------------------- | ----------------- |
-| `POST` | `/api/tickets/reserve`         | Reserve coordinates & calculate total price          | User              |
-| `GET`  | `/api/tickets/my-bookings`     | Paginated list of tickets for the logged-in user     | User              |
-| `POST` | `/api/tickets/check-in`        | Scan/Validate ticket & resolve dynamic seating tiers | Staff / Organizer |
-| `POST` | `/api/tickets/payment/success` | Webhook: Confirm payment & convert seats to sold     | Public            |
 
 ---
 
-**Built with ❤️ by Naveen**
+<p align="center">
+Built with ❤️, ☕, and high-performance .NET. 🚀<br>
+<b>Architected and maintained by <a href="https://github.com/Naveen2070">Naveen</a></b>
+</p>

@@ -75,7 +75,7 @@ public class TestCurrentUserService : ICurrentUserService
     {
         return new CurrentUserDetails("integration-test-user", "test@hive.com", new List<string>
         {
-            "ROLE_USER"
+            "USER"
         });
     }
 }

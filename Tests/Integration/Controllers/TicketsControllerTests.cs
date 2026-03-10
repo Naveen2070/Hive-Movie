@@ -55,7 +55,7 @@ public class TicketsControllerTests(SqlServerFixture fixture) : IAsyncLifetime
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.Role, "ROLE_USER")
+            new(ClaimTypes.Role, "USER")
         };
         if (userId != null) claims.Add(new Claim("id", userId));
 
