@@ -17,10 +17,11 @@ _Package: `com.thehiveproject.identity_service.common.entity`_
 Common base class for all entities, providing auditing and soft-delete capabilities.
 
 | Field       | Type             | Description                                         |
-|:------------|:-----------------|:----------------------------------------------------|
+| :---------- | :--------------- | :-------------------------------------------------- |
 | `id`        | `Long?` / `Int?` | Unique identifier (TSID for Long, Identity for Int) |
 | `createdBy` | `Long?`          | ID of the user who created the record               |
 | `updatedBy` | `Long?`          | ID of the user who last updated the record          |
+| `deletedBy` | `Long?`          | ID of the user who soft-deleted the record          |
 | `createdAt` | `Instant`        | Timestamp of creation                               |
 | `updatedAt` | `Instant`        | Timestamp of last update                            |
 | `version`   | `Long`           | Optimistic locking version                          |
@@ -33,11 +34,12 @@ Common base class for all entities, providing auditing and soft-delete capabilit
 _Package: `com.thehiveproject.identity_service.user.entity`_
 
 | Field          | Type                   | Description                              |
-|:---------------|:-----------------------|:-----------------------------------------|
+| :------------- | :--------------------- | :--------------------------------------- |
 | `id`           | `Long?`                | Primary Key (TSID)                       |
 | `email`        | `String`               | Unique email address                     |
 | `passwordHash` | `String`               | Hashed password                          |
 | `fullName`     | `String`               | User's full name                         |
+| `domainAccess` | `List<String>`         | List of domains the user has access to   |
 | `roles`        | `MutableSet<UserRole>` | One-to-many relationship with `UserRole` |
 
 ### `Role`
@@ -45,7 +47,7 @@ _Package: `com.thehiveproject.identity_service.user.entity`_
 _Package: `com.thehiveproject.identity_service.user.entity`_
 
 | Field  | Type     | Description                              |
-|:-------|:---------|:-----------------------------------------|
+| :----- | :------- | :--------------------------------------- |
 | `id`   | `Int?`   | Primary Key (Auto-increment)             |
 | `name` | `String` | Unique role name (e.g., "USER", "ADMIN") |
 
@@ -56,7 +58,7 @@ _Package: `com.thehiveproject.identity_service.user.entity`_
 Join table entity for User-Role relationship with Domain support.
 
 | Field    | Type     | Description                                           |
-|:---------|:---------|:------------------------------------------------------|
+| :------- | :------- | :---------------------------------------------------- |
 | `id`     | `Long?`  | Primary Key (TSID)                                    |
 | `user`   | `User`   | Reference to User                                     |
 | `role`   | `Role`   | Reference to Role                                     |
@@ -69,7 +71,7 @@ _Package: `com.thehiveproject.identity_service.auth.entity`_
 Used for issuing new access tokens without re-authentication.
 
 | Field        | Type      | Description               |
-|:-------------|:----------|:--------------------------|
+| :----------- | :-------- | :------------------------ |
 | `id`         | `Long?`   | Primary Key (TSID)        |
 | `user`       | `User`    | Reference to User         |
 | `token`      | `String`  | Unique refresh token UUID |
@@ -82,7 +84,7 @@ _Package: `com.thehiveproject.identity_service.auth.entity`_
 Temporary token for secure password recovery.
 
 | Field        | Type      | Description             |
-|:-------------|:----------|:------------------------|
+| :----------- | :-------- | :---------------------- |
 | `id`         | `Long?`   | Primary Key (TSID)      |
 | `user`       | `User`    | Reference to User       |
 | `token`      | `String`  | Unique reset token UUID |
@@ -101,7 +103,7 @@ DTOs are used for API requests and responses.
 Response sent after successful login or token refresh.
 
 | Field          | Type     | Description                                                    |
-|:---------------|:---------|:---------------------------------------------------------------|
+| :------------- | :------- | :------------------------------------------------------------- |
 | `token`        | `String` | JWT access token (Contains `domains` and `permissions` claims) |
 | `refreshToken` | `String` | Refresh token UUID                                             |
 | `email`        | `String` | Authenticated user email                                       |
@@ -111,7 +113,7 @@ Response sent after successful login or token refresh.
 Payload for user authentication.
 
 | Field      | Type     | Description        |
-|:-----------|:---------|:-------------------|
+| :--------- | :------- | :----------------- |
 | `email`    | `String` | User email address |
 | `password` | `String` | User password      |
 
@@ -120,7 +122,7 @@ Payload for user authentication.
 Payload for user registration or admin creation.
 
 | Field         | Type                  | Description                                                    |
-|:--------------|:----------------------|:---------------------------------------------------------------|
+| :------------ | :-------------------- | :------------------------------------------------------------- |
 | `fullName`    | `String`              | User's full name                                               |
 | `email`       | `String`              | User's email                                                   |
 | `password`    | `String`              | User's password (min 8 chars)                                  |
@@ -131,7 +133,7 @@ Payload for user registration or admin creation.
 Request to initiate password recovery.
 
 | Field   | Type     | Description                  |
-|:--------|:---------|:-----------------------------|
+| :------ | :------- | :--------------------------- |
 | `email` | `String` | Email address of the account |
 
 #### `ResetPasswordRequest`
@@ -139,7 +141,7 @@ Request to initiate password recovery.
 Payload to complete password recovery.
 
 | Field         | Type     | Description                    |
-|:--------------|:---------|:-------------------------------|
+| :------------ | :------- | :----------------------------- |
 | `token`       | `String` | Reset token received via email |
 | `newPassword` | `String` | New password (min 8 chars)     |
 
@@ -148,7 +150,7 @@ Payload to complete password recovery.
 Request for a new access token using a refresh token.
 
 | Field          | Type     | Description                  |
-|:---------------|:---------|:-----------------------------|
+| :------------- | :------- | :--------------------------- |
 | `refreshToken` | `String` | The valid refresh token UUID |
 
 ---
@@ -160,7 +162,7 @@ Request for a new access token using a refresh token.
 Standard user profile response.
 
 | Field         | Type                        | Description             |
-|:--------------|:----------------------------|:------------------------|
+| :------------ | :-------------------------- | :---------------------- |
 | `id`          | `String`                    | TSID as String          |
 | `fullName`    | `String`                    | User's full name        |
 | `email`       | `String`                    | User's email            |
@@ -173,7 +175,7 @@ Standard user profile response.
 Comprehensive DTO containing full entity state.
 
 | Field   | Type               | Description                            |
-|:--------|:-------------------|:---------------------------------------|
+| :------ | :----------------- | :------------------------------------- |
 | `id`    | `String?`          | ID                                     |
 | `email` | `String?`          | Email                                  |
 | `roles` | `Set<UserRoleDto>` | Nested role details including `domain` |
@@ -181,7 +183,7 @@ Comprehensive DTO containing full entity state.
 #### `UserRoleDto` (Nested in `UserDto`)
 
 | Field      | Type      | Description       |
-|:-----------|:----------|:------------------|
+| :--------- | :-------- | :---------------- |
 | `roleName` | `String?` | Role name         |
 | `domain`   | `String?` | Associated domain |
 
@@ -190,7 +192,7 @@ Comprehensive DTO containing full entity state.
 Lightweight user identification.
 
 | Field      | Type     | Description      |
-|:-----------|:---------|:-----------------|
+| :--------- | :------- | :--------------- |
 | `id`       | `Long`   | User ID (TSID)   |
 | `fullName` | `String` | User's full name |
 | `email`    | `String` | User's email     |
@@ -200,7 +202,7 @@ Lightweight user identification.
 Payload for updating user profile details.
 
 | Field      | Type      | Description      |
-|:-----------|:----------|:-----------------|
+| :--------- | :-------- | :--------------- |
 | `fullName` | `String?` | User's full name |
 
 #### `ChangePasswordRequest`
@@ -208,7 +210,7 @@ Payload for updating user profile details.
 Payload for changing authenticated user's password.
 
 | Field         | Type     | Description      |
-|:--------------|:---------|:-----------------|
+| :------------ | :------- | :--------------- |
 | `oldPassword` | `String` | Current password |
 | `newPassword` | `String` | New password     |
 
@@ -221,7 +223,7 @@ Payload for changing authenticated user's password.
 Generic wrapper for paginated lists.
 
 | Field           | Type      | Description                    |
-|:----------------|:----------|:-------------------------------|
+| :-------------- | :-------- | :----------------------------- |
 | `content`       | `List<T>` | List of items for current page |
 | `page`          | `Int`     | Current page index (0-based)   |
 | `size`          | `Int`     | Page size                      |
@@ -234,7 +236,7 @@ Generic wrapper for paginated lists.
 Standard error structure for all failed requests.
 
 | Field       | Type            | Description                   |
-|:------------|:----------------|:------------------------------|
+| :---------- | :-------------- | :---------------------------- |
 | `timestamp` | `LocalDateTime` | When the error occurred       |
 | `status`    | `Int`           | HTTP status code              |
 | `error`     | `String`        | HTTP status reason            |
@@ -243,14 +245,54 @@ Standard error structure for all failed requests.
 
 ---
 
-## 3. Token Claim Structure
+## 3. Domains & Roles
+
+### Available Domains
+
+| Domain   | Description                           |
+| :------- | :------------------------------------ |
+| `events` | Core Event Management ecosystem.      |
+| `movies` | Cinema and Ticketing ecosystem.       |
+| `admin`  | Platform-wide administrative control. |
+
+### Standard Roles
+
+Roles are typically prefixed with `ROLE_` when used in JWT claims or internal security checks.
+
+| Role          | Description                                               |
+| :------------ | :-------------------------------------------------------- |
+| `USER`        | Standard consumer access.                                 |
+| `ORGANIZER`   | Entity that creates and manages content (Events/Cinemas). |
+| `ADMIN`       | Domain-specific administrator.                            |
+| `SUPER_ADMIN` | Platform-wide global administrator.                       |
+
+---
+
+## 4. Security Utilities
+
+### S2S HMAC Verification (`S2SAuthUtil`)
+
+Used for secure internal service-to-service calls.
+
+**Signature Formula:**
+`Base64(HMAC-SHA256(serviceId + ":" + timestamp, sharedSecret))`
+
+**Parameters:**
+
+- `serviceId`: String (e.g., "event-service")
+- `timestamp`: Long (Epoch seconds)
+- `sharedSecret`: String (Shared between services)
+
+---
+
+## 5. Token Claim Structure
 
 The Identity Service issues JWT access tokens with a multi-tenant permission model.
 
 ### Standard Claims
 
 | Claim | Description |
-|:------|:------------|
+| :---- | :---------- |
 | `sub` | User Email  |
 | `iat` | Issued At   |
 | `exp` | Expiration  |
@@ -258,7 +300,7 @@ The Identity Service issues JWT access tokens with a multi-tenant permission mod
 ### Custom Claims
 
 | Claim         | Type                        | Description                                        |
-|:--------------|:----------------------------|:---------------------------------------------------|
+| :------------ | :-------------------------- | :------------------------------------------------- |
 | `id`          | `Long`                      | User unique identifier (TSID)                      |
 | `email`       | `String`                    | Redundant email claim for convenience              |
 | `domains`     | `List<String>`              | List of domains the user has access to             |
