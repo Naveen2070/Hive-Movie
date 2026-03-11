@@ -25,19 +25,20 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
             _ => StatusCodes.Status500InternalServerError
         };
 
-        // Format the response using the industry-standard ProblemDetails schema
-        var problemDetails = new ProblemDetails
+        // Format the response using the unified ApiErrorResponse schema
+        var errorResponse = new Hive_Movie.DTOs.ApiErrorResponse
         {
             Status = statusCode,
-            Title = GetTitle(statusCode),
-            Detail = exception is ValidationException valEx
+            Error = GetTitle(statusCode),
+            Message = exception is ValidationException valEx
                 ? string.Join("; ", valEx.Errors.Select(e => e.ErrorMessage))
                 : exception.Message,
-            Instance = httpContext.Request.Path
+            Path = httpContext.Request.Path,
+            Timestamp = DateTime.UtcNow
         };
 
         httpContext.Response.StatusCode = statusCode;
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(errorResponse, cancellationToken);
 
         // Return true to tell .NET: "I handled this error, don't crash the app!"
         return true;
