@@ -15,7 +15,7 @@ Entities represent the database schema and persistent data.
 Common base class for all entities, providing auditing and soft-delete capabilities.
 
 | Field          | Type        | Description                                |
-|:---------------|:------------|:-------------------------------------------|
+| :------------- | :---------- | :----------------------------------------- |
 | `Id`           | `Guid`      | Unique identifier (UUID v7)                |
 | `CreatedAtUtc` | `DateTime`  | Timestamp of creation (UTC)                |
 | `CreatedBy`    | `Long?`     | ID of the user who created the record      |
@@ -29,7 +29,7 @@ Common base class for all entities, providing auditing and soft-delete capabilit
 ### `Cinema`
 
 | Field            | Type                   | Description                                        |
-|:-----------------|:-----------------------|:---------------------------------------------------|
+| :--------------- | :--------------------- | :------------------------------------------------- |
 | `OrganizerId`    | `String`               | The ID of the user/organization owning this cinema |
 | `Name`           | `String`               | Name of the cinema (Max 150 chars)                 |
 | `Location`       | `String`               | Physical address or city (Max 500 chars)           |
@@ -39,7 +39,7 @@ Common base class for all entities, providing auditing and soft-delete capabilit
 ### `Movie`
 
 | Field             | Type       | Description                        |
-|:------------------|:-----------|:-----------------------------------|
+| :---------------- | :--------- | :--------------------------------- |
 | `Title`           | `String`   | Movie title (Max 255 chars)        |
 | `Description`     | `String`   | Brief synopsis (Max 500 chars)     |
 | `DurationMinutes` | `Int`      | Total runtime in minutes           |
@@ -49,7 +49,7 @@ Common base class for all entities, providing auditing and soft-delete capabilit
 ### `Auditorium`
 
 | Field                 | Type               | Description                                |
-|:----------------------|:-------------------|:-------------------------------------------|
+| :-------------------- | :----------------- | :----------------------------------------- |
 | `CinemaId`            | `Guid`             | Foreign Key to parent Cinema               |
 | `Name`                | `String`           | Name of the room/screen (Max 100 chars)    |
 | `MaxRows`             | `Int`              | Total rows in the seating grid             |
@@ -59,7 +59,7 @@ Common base class for all entities, providing auditing and soft-delete capabilit
 ### `Showtime`
 
 | Field                   | Type        | Description                                     |
-|:------------------------|:------------|:------------------------------------------------|
+| :---------------------- | :---------- | :---------------------------------------------- |
 | `MovieId`               | `Guid`      | Associated Movie                                |
 | `AuditoriumId`          | `Guid`      | Associated Auditorium                           |
 | `StartTimeUtc`          | `DateTime`  | Event start time                                |
@@ -70,7 +70,7 @@ Common base class for all entities, providing auditing and soft-delete capabilit
 ### `Ticket`
 
 | Field              | Type                   | Description                                |
-|:-------------------|:-----------------------|:-------------------------------------------|
+| :----------------- | :--------------------- | :----------------------------------------- |
 | `UserId`           | `String`               | ID of the user who made the booking        |
 | `ShowtimeId`       | `Guid`                 | Associated Showtime                        |
 | `BookingReference` | `String`               | Human-readable code (e.g., "HIVE-XXXX")    |
@@ -90,7 +90,7 @@ DTOs are used for API requests and responses.
 #### `CinemaResponse`
 
 | Field            | Type     | Description      |
-|:-----------------|:---------|:-----------------|
+| :--------------- | :------- | :--------------- |
 | `Id`             | `Guid`   | Primary Key      |
 | `Name`           | `String` | Cinema Name      |
 | `Location`       | `String` | Physical Address |
@@ -102,7 +102,7 @@ DTOs are used for API requests and responses.
 #### `MovieResponse`
 
 | Field             | Type       | Description    |
-|:------------------|:-----------|:---------------|
+| :---------------- | :--------- | :------------- |
 | `Id`              | `Guid`     | Primary Key    |
 | `Title`           | `String`   | Movie Title    |
 | `Description`     | `String`   | Movie Synopsis |
@@ -115,7 +115,7 @@ DTOs are used for API requests and responses.
 #### `AuditoriumResponse`
 
 | Field        | Type                  | Description        |
-|:-------------|:----------------------|:-------------------|
+| :----------- | :-------------------- | :----------------- |
 | `Id`         | `Guid`                | Primary Key        |
 | `CinemaId`   | `Guid`                | Parent Cinema ID   |
 | `Name`       | `String`              | Room Name          |
@@ -128,7 +128,7 @@ DTOs are used for API requests and responses.
 #### `ShowtimeSeatMapResponse`
 
 | Field            | Type                  | Description                      |
-|:-----------------|:----------------------|:---------------------------------|
+| :--------------- | :-------------------- | :------------------------------- |
 | `MovieTitle`     | `String`              | Title of movie playing           |
 | `CinemaName`     | `String`              | Building Name                    |
 | `AuditoriumName` | `String`              | Screen Name                      |
@@ -143,7 +143,7 @@ DTOs are used for API requests and responses.
 #### `MyTicketResponse`
 
 | Field              | Type                      | Description         |
-|:-------------------|:--------------------------|:--------------------|
+| :----------------- | :------------------------ | :------------------ |
 | `TicketId`         | `Guid`                    | Primary Key         |
 | `BookingReference` | `String`                  | Human-readable code |
 | `MovieTitle`       | `String`                  | Movie Title         |
@@ -157,7 +157,7 @@ DTOs are used for API requests and responses.
 #### `CheckInResponse`
 
 | Field            | Type     | Description                             |
-|:-----------------|:---------|:----------------------------------------|
+| :--------------- | :------- | :-------------------------------------- |
 | `Status`         | `String` | Scan result (CHECKED_IN, EXPIRED, etc.) |
 | `AttendeeName`   | `String` | Ticket holder name                      |
 | `TicketTierName` | `String` | Assigned seating tier                   |
@@ -169,7 +169,7 @@ DTOs are used for API requests and responses.
 ### `TicketStatus`
 
 | Value       | Description                            |
-|:------------|:---------------------------------------|
+| :---------- | :------------------------------------- |
 | `Pending`   | Seats are locked; waiting for payment. |
 | `Confirmed` | Payment verified; ticket is active.    |
 | `Used`      | Scanned at the entrance.               |
@@ -179,7 +179,34 @@ DTOs are used for API requests and responses.
 ### `CinemaApprovalStatus`
 
 | Value      | Description                        |
-|:-----------|:-----------------------------------|
+| :--------- | :--------------------------------- |
 | `Pending`  | New registration; awaiting review. |
 | `Approved` | Cinema is live and active.         |
 | `Rejected` | Denied by administration.          |
+
+### `SeatStatus`
+
+This is a `byte`-based enum used by the `SeatMapEngine`.
+
+| Value | Name        | Description                             |
+| :---- | :---------- | :-------------------------------------- |
+| `0`   | `Available` | Open for reservation.                   |
+| `1`   | `Reserved`  | Locked in a pending transaction.        |
+| `2`   | `Sold`      | Permanently occupied for the showtime.  |
+| `3`   | `Broken`    | Not available for sale (e.g., damaged). |
+
+---
+
+## 4. Business Logic Helpers
+
+### `SeatMapEngine`
+
+High-performance, zero-allocation struct for managing seating grids.
+
+**Key Operations:**
+
+- `TryReserveSeats(List<SeatCoordinate>)`: Atomic verification and locking.
+- `ReleaseSeat(SeatCoordinate)`: Unlocks a seat back to `Available`.
+- `MarkAsSold(List<SeatCoordinate>)`: Finalizes a reservation.
+
+---
