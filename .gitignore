@@ -480,3 +480,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# I don't do AI stuff in this learning project
+.gemini/
+.agents/
+agent.json
+*.skill
