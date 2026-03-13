@@ -36,11 +36,18 @@ public class ShowtimeService(
             showtime.Auditorium.MaxColumns);
 
         var seatMap = new List<SeatStatusDto>();
+        var disabledSeats = showtime.Auditorium.LayoutConfiguration.DisabledSeats ?? new List<SeatCoordinate>();
 
         for (var r = 0; r < showtime.Auditorium.MaxRows; r++)
         {
             for (var c = 0; c < showtime.Auditorium.MaxColumns; c++)
             {
+                // Skip seats that are marked as disabled (aisles, etc.)
+                if (disabledSeats.Any(s => s.Row == r && s.Col == c))
+                {
+                    continue;
+                }
+
                 seatMap.Add(new SeatStatusDto(r, c, engine.GetStatus(r, c).ToString()));
             }
         }
