@@ -214,6 +214,23 @@ Payload for changing authenticated user's password.
 | `oldPassword` | `String` | Current password |
 | `newPassword` | `String` | New password     |
 
+#### `AddUserRoleRequest`
+
+Payload for adding a single role to a user.
+
+| Field      | Type     | Description         |
+| :--------- | :------- | :------------------ |
+| `domain`   | `String` | Domain for the role |
+| `roleName` | `String` | Name of the role    |
+
+#### `UpdateUserRolesRequest`
+
+Payload for updating multiple user roles.
+
+| Field         | Type                  | Description                               |
+| :------------ | :-------------------- | :---------------------------------------- |
+| `domainRoles` | `Map<String, String>` | Map of domains to their corresponding role |
+
 ---
 
 ### Common DTOs
