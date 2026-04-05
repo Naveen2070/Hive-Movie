@@ -6,7 +6,7 @@ namespace Hive_Movie.Infrastructure.Messaging;
 public class NotificationProducer(IConfiguration configuration) : INotificationProducer
 {
     private const string ExchangeName = "hive.notifications";
-    private const string RoutingKey = "identity.email";
+    private const string RoutingKey = "movie.email";
 
     private readonly static JsonSerializerOptions JsonOptions = new()
     {
